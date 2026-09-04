@@ -502,6 +502,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Configuración de la instancia
+         * @description Configuración efectiva. Nunca devuelve secretos, solo si están presentes.
+         */
+        get: operations["instance_settings_api_v1_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sites": {
         parameters: {
             query?: never;
@@ -933,6 +953,49 @@ export interface components {
             softree_overall: number | null;
             /** Status */
             status: string;
+        };
+        /** InstanceSettings */
+        InstanceSettings: {
+            /** Access Token Ttl Minutes */
+            access_token_ttl_minutes: number;
+            /** Allowed Ports */
+            allowed_ports: number[];
+            /** App Version */
+            app_version: string;
+            /** Environment */
+            environment: string;
+            /** Integrations */
+            integrations: components["schemas"]["IntegrationStatus"][];
+            /** Refresh Token Ttl Days */
+            refresh_token_ttl_days: number;
+            /** Report Version */
+            report_version: string;
+            /** Scan Engine Version */
+            scan_engine_version: string;
+            scope_defaults: components["schemas"]["ScopeDefaults"];
+            scoring: components["schemas"]["ScoringWeights"];
+            /** Ssrf Allow Private Networks */
+            ssrf_allow_private_networks: boolean;
+            /** User Email */
+            user_email: string;
+            /** User Full Name */
+            user_full_name: string;
+        };
+        /** IntegrationStatus */
+        IntegrationStatus: {
+            /**
+             * Configured
+             * @description Si hay credenciales. Nunca se devuelve su valor.
+             */
+            configured: boolean;
+            /** Detail */
+            detail: string;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Variables */
+            variables: string[];
         };
         /**
          * LoginRequest
@@ -1437,6 +1500,22 @@ export interface components {
          */
         ScanType: "full" | "security" | "seo" | "performance";
         /**
+         * ScopeDefaults
+         * @description Máximos que ningún scope puede superar.
+         */
+        ScopeDefaults: {
+            /** Concurrency */
+            concurrency: number;
+            /** Max Depth */
+            max_depth: number;
+            /** Max Pages */
+            max_pages: number;
+            /** Request Delay Ms */
+            request_delay_ms: number;
+            /** Timeout Seconds */
+            timeout_seconds: number;
+        };
+        /**
          * ScopeLimits
          * @description Máximos que la interfaz debe respetar, servidos por la propia API.
          */
@@ -1590,6 +1669,22 @@ export interface components {
             value: string | null;
             /** Weight */
             weight: string | null;
+        };
+        /**
+         * ScoringWeights
+         * @description Pesos del Softree Score, tal como están configurados (§26).
+         */
+        ScoringWeights: {
+            /** Accessibility */
+            accessibility: number;
+            /** Best Practices */
+            best_practices: number;
+            /** Performance */
+            performance: number;
+            /** Security */
+            security: number;
+            /** Seo */
+            seo: number;
         };
         /**
          * SearchConsoleDimension
@@ -3270,6 +3365,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    instance_settings_api_v1_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
                 };
             };
         };

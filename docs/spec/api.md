@@ -188,6 +188,20 @@ GET  /api/v1/reports/{scan_id}                                                  
 GET  /api/v1/reports/{scan_id}/download?format=pdf                                      → binario
 ```
 
+### Settings
+
+```
+GET  /api/v1/settings        → configuración efectiva de la instancia
+```
+
+Entorno, versiones, identidad del usuario autenticado, pesos de scoring
+efectivos, máximos de scope, TTL de los tokens y estado de las integraciones.
+
+De cada integración se devuelve `configured` (booleano) y los nombres de las
+variables de entorno que la habilitan. **Nunca se devuelve el valor de una
+credencial**, ni siquiera parcialmente: la configuración vive en el `.env` del
+despliegue y este endpoint solo informa de si está presente.
+
 ## Contrato para n8n
 
 No se construye un adaptador específico. El flujo soportado es:

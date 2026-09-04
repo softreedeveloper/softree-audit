@@ -116,6 +116,7 @@ softree-seo/
 | [docs/development/slice-9.md](docs/development/slice-9.md) | Alcance y verificación del Slice 9 |
 | [docs/development/slice-10.md](docs/development/slice-10.md) | Alcance y verificación del Slice 10 |
 | [docs/development/slice-11.md](docs/development/slice-11.md) | Alcance y verificación del Slice 11 |
+| [docs/development/final-verification.md](docs/development/final-verification.md) | Verificación final del MVP contra la especificación |
 | [docs/development/testing.md](docs/development/testing.md) | Estrategia de pruebas |
 | [docs/development/deployment.md](docs/development/deployment.md) | Despliegue y rotación de secretos |
 

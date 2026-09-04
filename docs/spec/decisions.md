@@ -67,3 +67,4 @@ arquitectónicas mayores viven en `docs/decisions/`.
 | D-029 | Reintentos de un scan completo | `max_tries = 1` en arq | Reintentar repetiría todo el tráfico contra el sitio del cliente |
 | D-024 | Valores generados por el servidor en los modelos | `eager_defaults` en la base declarativa | Sin ello SQLAlchemy recarga `updated_at` de forma perezosa y falla en contexto asíncrono |
 | D-019 | Anotación del cliente de Redis | Alias `RedisClient`, genérico solo bajo `TYPE_CHECKING` | `redis.asyncio.Redis` no es genérico en tiempo de ejecución y FastAPI evalúa las anotaciones de las dependencias |
+| D-063 | Qué muestra la pantalla de configuración | Solo lectura: valores efectivos y, de cada integración, si tiene credenciales y qué variable la define | La configuración vive en el `.env` del despliegue. Editarla desde la interfaz obligaría a persistir secretos en base de datos; publicar su valor los filtraría a cualquiera con sesión |

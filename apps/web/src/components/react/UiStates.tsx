@@ -154,20 +154,3 @@ export function SuccessBanner({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
-/** Marcador para vistas cuyo slice todavía no está implementado.
- *  Es preferible a una pantalla vacía o a datos inventados.
- */
-export function PlannedState({ title, slice }: { title: string; slice: string }) {
-  return (
-    <EmptyState
-      title={title}
-      description={
-        <>
-          Esta vista se implementa en el <strong>{slice}</strong>. La navegación y los estados ya
-          están disponibles para no dejar pantallas rotas.
-        </>
-      }
-    />
-  );
-}

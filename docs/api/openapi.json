@@ -818,6 +818,122 @@
         "title": "HistoryEntry",
         "type": "object"
       },
+      "InstanceSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "access_token_ttl_minutes": {
+            "title": "Access Token Ttl Minutes",
+            "type": "integer"
+          },
+          "allowed_ports": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Allowed Ports",
+            "type": "array"
+          },
+          "app_version": {
+            "title": "App Version",
+            "type": "string"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "integrations": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationStatus"
+            },
+            "title": "Integrations",
+            "type": "array"
+          },
+          "refresh_token_ttl_days": {
+            "title": "Refresh Token Ttl Days",
+            "type": "integer"
+          },
+          "report_version": {
+            "title": "Report Version",
+            "type": "string"
+          },
+          "scan_engine_version": {
+            "title": "Scan Engine Version",
+            "type": "string"
+          },
+          "scope_defaults": {
+            "$ref": "#/components/schemas/ScopeDefaults"
+          },
+          "scoring": {
+            "$ref": "#/components/schemas/ScoringWeights"
+          },
+          "ssrf_allow_private_networks": {
+            "title": "Ssrf Allow Private Networks",
+            "type": "boolean"
+          },
+          "user_email": {
+            "title": "User Email",
+            "type": "string"
+          },
+          "user_full_name": {
+            "title": "User Full Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "environment",
+          "app_version",
+          "scan_engine_version",
+          "report_version",
+          "user_email",
+          "user_full_name",
+          "scoring",
+          "integrations",
+          "scope_defaults",
+          "ssrf_allow_private_networks",
+          "allowed_ports",
+          "access_token_ttl_minutes",
+          "refresh_token_ttl_days"
+        ],
+        "title": "InstanceSettings",
+        "type": "object"
+      },
+      "IntegrationStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "configured": {
+            "description": "Si hay credenciales. Nunca se devuelve su valor.",
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "variables": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Variables",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "configured",
+          "detail",
+          "variables"
+        ],
+        "title": "IntegrationStatus",
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "description": "Credenciales de acceso.\n\nEl email se valida solo en su forma, no con `EmailStr`. La validación\nestricta rechaza dominios de uso reservado (`.test`, `.local`, `.internal`),\nque son legítimos en una herramienta interna, y rechazar un intento de login\npor el formato del email no aporta ninguna protección: la comprobación real\nes la búsqueda del usuario. La validación estricta sí se aplica al crear la\ncuenta, en `UserCreate`.",
@@ -2335,6 +2451,41 @@
         "title": "ScanType",
         "type": "string"
       },
+      "ScopeDefaults": {
+        "additionalProperties": false,
+        "description": "Máximos que ningún scope puede superar.",
+        "properties": {
+          "concurrency": {
+            "title": "Concurrency",
+            "type": "integer"
+          },
+          "max_depth": {
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "max_pages": {
+            "title": "Max Pages",
+            "type": "integer"
+          },
+          "request_delay_ms": {
+            "title": "Request Delay Ms",
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "title": "Timeout Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_pages",
+          "max_depth",
+          "timeout_seconds",
+          "request_delay_ms",
+          "concurrency"
+        ],
+        "title": "ScopeDefaults",
+        "type": "object"
+      },
       "ScopeLimits": {
         "additionalProperties": false,
         "description": "Máximos que la interfaz debe respetar, servidos por la propia API.",
@@ -2615,6 +2766,41 @@
           "engine_version"
         ],
         "title": "ScoreRead",
+        "type": "object"
+      },
+      "ScoringWeights": {
+        "additionalProperties": false,
+        "description": "Pesos del Softree Score, tal como están configurados (§26).",
+        "properties": {
+          "accessibility": {
+            "title": "Accessibility",
+            "type": "number"
+          },
+          "best_practices": {
+            "title": "Best Practices",
+            "type": "number"
+          },
+          "performance": {
+            "title": "Performance",
+            "type": "number"
+          },
+          "security": {
+            "title": "Security",
+            "type": "number"
+          },
+          "seo": {
+            "title": "Seo",
+            "type": "number"
+          }
+        },
+        "required": [
+          "security",
+          "performance",
+          "seo",
+          "accessibility",
+          "best_practices"
+        ],
+        "title": "ScoringWeights",
         "type": "object"
       },
       "SearchConsoleDimension": {
@@ -5660,6 +5846,33 @@
         "summary": "Hallazgos abiertos por severidad",
         "tags": [
           "scans"
+        ]
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "description": "Configuración efectiva. Nunca devuelve secretos, solo si están presentes.",
+        "operationId": "instance_settings_api_v1_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Configuración de la instancia",
+        "tags": [
+          "settings"
         ]
       }
     },

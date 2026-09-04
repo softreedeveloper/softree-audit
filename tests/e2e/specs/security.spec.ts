@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { CREDENTIALS } from './fixtures';
+import { CREDENTIALS, login } from './fixtures';
 
 /** Comprobaciones de seguridad sobre la aplicación en ejecución. */
 
@@ -101,4 +101,21 @@ test('la documentación interactiva usa una CSP propia', async ({ request }) => 
   const csp = response.headers()['content-security-policy'] ?? '';
   expect(csp).toContain("frame-ancestors 'none'");
   expect(csp).toContain("base-uri 'none'");
+});
+
+test('la configuración muestra el estado de las integraciones, no sus credenciales', async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto('/settings');
+
+  await expect(page.getByRole('heading', { name: 'Integraciones' })).toBeVisible();
+
+  // De cada integración solo se publica el nombre de sus variables y si están
+  // definidas. El valor nunca sale del servidor: lo comprueba
+  // tests/integration/test_settings.py.
+  const body = await page.locator('main').innerText();
+  expect(body).toContain('PAGESPEED_API_KEY');
+  expect(body).toContain('GOOGLE_CLIENT_SECRET');
+  expect(body).toMatch(/Configurada|Sin configurar/);
 });

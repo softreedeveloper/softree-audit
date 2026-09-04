@@ -15,6 +15,7 @@ import type {
   GoogleProperty,
   GoogleStatus,
   HistoryEntry,
+  InstanceSettings,
   Page as PageResponse,
   PerformanceSummary,
   Project,
@@ -362,4 +363,8 @@ export const reports = {
     link.remove();
     URL.revokeObjectURL(url);
   },
+};
+
+export const instance = {
+  settings: (): Promise<InstanceSettings> => request<InstanceSettings>('/settings'),
 };

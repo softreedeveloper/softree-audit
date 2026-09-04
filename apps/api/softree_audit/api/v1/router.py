@@ -13,6 +13,7 @@ from softree_audit.api.v1 import (
     projects,
     reports,
     scans,
+    settings,
     sites,
 )
 
@@ -26,3 +27,4 @@ api_router.include_router(scans.router)
 api_router.include_router(findings.router)
 api_router.include_router(integrations.router)
 api_router.include_router(reports.router)
+api_router.include_router(settings.router)

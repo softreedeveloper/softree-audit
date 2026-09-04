@@ -116,10 +116,8 @@ softree-seo/
 │   │   ├── pyproject.toml
 │   │   └── alembic.ini
 │   └── web/                 Astro + React
-├── services/                symlink lógico: subpaquetes bajo softree_audit/services
-├── packages/
-│   ├── scoring/             subpaquete bajo softree_audit/scoring
-│   └── shared-types/        tipos TS generados
+├── services/                README que apunta a softree_audit/services
+├── packages/                README que apunta a softree_audit/scoring
 ├── tests/
 │   ├── unit/
 │   ├── integration/
@@ -138,7 +136,8 @@ softree-seo/
 La especificación original sugiere `services/` y `packages/` como proyectos
 hermanos de `apps/`. En el MVP los subpaquetes Python viven dentro del paquete
 `softree_audit` de `apps/api`, y los directorios `services/` y `packages/` de la
-raíz contienen únicamente documentación y los tipos TypeScript generados.
+raíz contienen únicamente un README que indica dónde está cada módulo. Los
+tipos TypeScript generados viven en `apps/web/src/lib/api-types.ts`.
 
 Motivo: un único entorno Python, una única imagen Docker y ningún paquete
 interno que publicar. Los imports usan `softree_audit.services.crawler`, por lo

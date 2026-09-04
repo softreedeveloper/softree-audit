@@ -476,3 +476,43 @@ export interface ReportEntry {
   checksum_sha256: string | null;
   generated_at: string;
 }
+
+export interface ScoringWeights {
+  security: number;
+  performance: number;
+  seo: number;
+  accessibility: number;
+  best_practices: number;
+}
+
+export interface IntegrationStatus {
+  key: string;
+  name: string;
+  configured: boolean;
+  detail: string;
+  variables: string[];
+}
+
+export interface ScopeDefaults {
+  max_pages: number;
+  max_depth: number;
+  timeout_seconds: number;
+  request_delay_ms: number;
+  concurrency: number;
+}
+
+export interface InstanceSettings {
+  environment: string;
+  app_version: string;
+  scan_engine_version: string;
+  report_version: string;
+  user_email: string;
+  user_full_name: string;
+  scoring: ScoringWeights;
+  integrations: IntegrationStatus[];
+  scope_defaults: ScopeDefaults;
+  ssrf_allow_private_networks: boolean;
+  allowed_ports: number[];
+  access_token_ttl_minutes: number;
+  refresh_token_ttl_days: number;
+}
