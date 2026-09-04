@@ -32,7 +32,9 @@ class RateLimitPolicy:
 
 # Políticas declaradas en security.md §5.
 LOGIN = RateLimitPolicy("login", max_requests=5, window_seconds=900, fail_closed=True)
-REFRESH = RateLimitPolicy("refresh", max_requests=30, window_seconds=3600, fail_closed=True)
+# Cada carga de página renueva el access token, porque solo vive en memoria.
+# Un límite bajo echaría al usuario a mitad de sesión por navegar.
+REFRESH = RateLimitPolicy("refresh", max_requests=120, window_seconds=3600, fail_closed=True)
 SCAN_CREATE = RateLimitPolicy("scan_create", max_requests=10, window_seconds=3600)
 REPORT_GENERATE = RateLimitPolicy("report_generate", max_requests=20, window_seconds=3600)
 DEFAULT = RateLimitPolicy("default", max_requests=300, window_seconds=60)

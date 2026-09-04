@@ -55,6 +55,7 @@ arquitectónicas mayores viven en `docs/decisions/`.
 | D-057 | Regenerar un reporte | Sustituye el archivo y su registro | No tiene sentido acumular versiones idénticas del mismo reporte |
 | D-059 | Repetición inmediata de un refresh token | Ventana de gracia de 15 s; fuera de ella se revoca todo | Dos pestañas o una recarga son una carrera benigna; cerrar la sesión ahí es hostil y no aporta seguridad |
 | D-060 | CSS del reporte | Se inserta sin escapar | Es un archivo propio; con autoescape, WeasyPrint descartaba las reglas con comillas |
+| D-062 | Límite del refresco | 120 por hora y por usuario, no por IP | Cada navegación renueva el token; por IP, varios usuarios tras un proxy se expulsarían entre sí |
 | D-061 | Pruebas de rendimiento sintéticas | No se construyen en el MVP | Los límites de carga ya están acotados por diseño y verificados; una prueba de carga sobre un producto interno de un tenant no daría información accionable |
 | D-058 | Gráficos del reporte | Tablas por ahora, SVG en servidor más adelante | WeasyPrint no ejecuta JavaScript y las tablas ya son legibles |
 | D-054 | Qué cuenta como regresión | Subir de severidad o afectar a más páginas | Bajar de severidad no es corregir, pero tampoco empeorar |

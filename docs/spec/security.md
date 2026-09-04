@@ -114,10 +114,16 @@ Implementado en Redis con ventana deslizante, por IP y ruta.
 | Ruta | Límite |
 |------|--------|
 | `POST /auth/login` | 5 por 15 minutos |
-| `POST /auth/refresh` | 30 por hora |
+| `POST /auth/refresh` | 120 por hora, **por usuario** |
 | `POST /scans` | 10 por hora |
 | `POST /reports/{id}/generate` | 20 por hora |
 | Resto de la API | 300 por minuto |
+
+El refresco se limita por usuario, no por IP: cada carga de página renueva el
+access token, y limitar por dirección expulsaría de la sesión a los usuarios
+que comparten un proxy. No protege menos: un refresh token es un JWT firmado,
+no algo que se pueda adivinar por fuerza bruta. Cuando el token no es legible,
+el límite vuelve a aplicarse por IP.
 
 Si Redis no está disponible, la política es **fail closed** en autenticación y
 **fail open** en el resto, registrando el incidente.

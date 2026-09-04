@@ -21,6 +21,7 @@ from softree_audit.auth.service import AuthService, SessionPair
 from softree_audit.core import rate_limit
 from softree_audit.core.config import Settings
 from softree_audit.core.errors import InvalidTokenError
+from softree_audit.core.security import decode_token
 from softree_audit.schemas.auth import LoginRequest, TokenResponse, UserRead
 from softree_audit.schemas.common import ErrorResponse
 
@@ -30,6 +31,18 @@ AuthDep = Annotated[AuthService, Depends(get_auth_service)]
 ClientIp = Annotated[str, Depends(client_ip)]
 
 REFRESH_COOKIE_PATH = "/api/v1/auth"
+
+
+def _refresh_identity(token: str | None, settings: Settings, ip: str) -> str:
+    """Sujeto del límite de tasa para `/auth/refresh`."""
+    if token:
+        try:
+            claims = decode_token(token, secret_key=settings.secret_key, expected_type="refresh")
+        except InvalidTokenError:
+            return f"ip:{ip}"
+        else:
+            return f"user:{claims.subject}"
+    return f"ip:{ip}"
 
 
 def _set_refresh_cookie(response: Response, settings: Settings, pair: SessionPair) -> None:
@@ -112,9 +125,13 @@ async def refresh(
     limiter: Limiter,
     ip: ClientIp,
 ) -> TokenResponse:
-    await limiter.check(rate_limit.REFRESH, ip)
-
     token = request.cookies.get(settings.refresh_cookie_name)
+    # El límite se aplica por usuario cuando el token es legible, y por IP en
+    # caso contrario. Limitar solo por IP dejaría que varios usuarios detrás de
+    # un mismo proxy se expulsaran entre sí, y no protege más: un refresh token
+    # es un JWT firmado, no algo que se pueda adivinar por fuerza bruta.
+    await limiter.check(rate_limit.REFRESH, _refresh_identity(token, settings, ip))
+
     if not token:
         raise InvalidTokenError()
 
