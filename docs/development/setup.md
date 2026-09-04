@@ -86,6 +86,19 @@ Ver `.env.example`. Las relevantes para el Slice 1:
 | `CORS_ORIGINS` | no | Vacío cuando se sirve same-origin |
 | `SSRF_ALLOW_PRIVATE_NETWORKS` | no | Solo desarrollo y pruebas |
 
+## Usuarios
+
+No hay registro público (D-003). Se administran por línea de comandos:
+
+```bash
+make user                                   # crea un usuario, pregunta la contraseña
+docker compose exec api softree-audit reset-password   # cambia la contraseña de uno existente
+```
+
+`reset-password` pide el email y la contraseña nueva por consola, sin eco, y
+revoca las sesiones abiertas de ese usuario: un refresh token emitido con la
+contraseña anterior deja de servir.
+
 ## Credenciales de Google
 
 Ninguna es obligatoria para arrancar. Sin ellas, el módulo de performance queda
@@ -113,14 +126,12 @@ Con clave, 25 000 consultas diarias.
    web**. En **URIs de redirección autorizados**, exactamente:
 
    ```
-   http://localhost:4321/api/v1/integrations/google/callback
+   http://localhost:8000/api/v1/integrations/google/callback
    ```
 
-   Es el origen de la interfaz, no el de la API. El servidor de desarrollo hace
-   proxy de `/api` hacia la API, de modo que el callback llega igual y, al
-   terminar, el navegador vuelve a la interfaz. Apuntarlo al puerto 8000 haría
-   aterrizar al usuario en el origen de la API, donde `/integrations` no existe.
-   En producción, con API e interfaz en el mismo dominio, es
+   Es el endpoint de callback de la API. Al terminar, la API redirige al
+   frontend configurado en `APP_URL`. En producción, con API e interfaz en el
+   mismo dominio, es
    `https://<dominio>/api/v1/integrations/google/callback`.
 
 4. `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y `GOOGLE_REDIRECT_URI` en `.env`.

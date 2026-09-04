@@ -31,6 +31,11 @@ router = APIRouter(prefix="/integrations/google", tags=["integrations"])
 CALLBACK_REDIRECT = "/integrations"
 
 
+def _interface_url(settings: AppSettings, query: str) -> str:
+    """Construye el retorno al frontend desde el origen configurado."""
+    return f"{settings.app_url.rstrip('/')}{CALLBACK_REDIRECT}?{query}"
+
+
 def get_redis_client(request: Request) -> RedisClient:
     redis: RedisClient = request.app.state.redis
     return redis
@@ -97,12 +102,12 @@ async def callback(
     la interfaz los traduce.
     """
     if error or not code or not state:
-        return _callback_error(error or "missing_code")
+        return _callback_error(settings, error or "missing_code")
 
     owner_id = await GoogleIntegrationService.resolve_state_owner(redis, state)
     if owner_id is None:
         logger.warning("google.callback_unknown_state")
-        return _callback_error("invalid_state")
+        return _callback_error(settings, "invalid_state")
 
     service = GoogleIntegrationService(session, redis, settings, owner_id)
     try:
@@ -111,17 +116,17 @@ async def callback(
         # El navegador está aquí, no el cliente de la API: un JSON de error
         # dejaría al usuario en una página en blanco.
         logger.warning("google.callback_failed", reason=exc.code)
-        return _callback_error(exc.code)
+        return _callback_error(settings, exc.code)
 
     return RedirectResponse(
-        f"{CALLBACK_REDIRECT}?google=connected&project_id={connection.project_id}",
+        _interface_url(settings, f"google=connected&project_id={connection.project_id}"),
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
 
-def _callback_error(reason: str) -> RedirectResponse:
+def _callback_error(settings: AppSettings, reason: str) -> RedirectResponse:
     return RedirectResponse(
-        f"{CALLBACK_REDIRECT}?google=error&reason={quote(reason, safe='')}",
+        _interface_url(settings, f"google=error&reason={quote(reason, safe='')}"),
         status_code=status.HTTP_303_SEE_OTHER,
     )
 

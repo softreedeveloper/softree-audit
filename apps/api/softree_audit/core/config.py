@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     # ── Entorno ────────────────────────────────────────────────────────────
     app_env: Environment = "development"
+    app_url: str = "http://localhost:4321"
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
     api_prefix: str = "/api/v1"

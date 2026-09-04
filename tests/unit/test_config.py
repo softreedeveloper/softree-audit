@@ -35,6 +35,10 @@ BASE: dict[str, object] = {
 
 def test_defaults_are_safe() -> None:
     settings = Settings(**BASE)  # type: ignore[arg-type]
+    assert settings.app_url == "http://localhost:4321"
+    assert settings.google_redirect_uri == (
+        "http://localhost:8000/api/v1/integrations/google/callback"
+    )
     assert settings.ssrf_allow_private_networks is False
     assert settings.ssrf_allowed_ports == [80, 443]
     assert settings.access_token_ttl_minutes == 15

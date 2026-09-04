@@ -20,6 +20,15 @@ PASSWORD_MAX_LENGTH = 256
 EMAIL_MAX_LENGTH = 320
 
 
+def normalize_email_form(value: str) -> str:
+    """Normaliza y comprueba solo la forma del email, no su existencia."""
+    normalized = value.strip().lower()
+    local, separator, domain = normalized.partition("@")
+    if not separator or not local or not domain or "@" in domain:
+        raise ValueError("El email debe tener la forma usuario@dominio")
+    return normalized
+
+
 class LoginRequest(ApiModel):
     """Credenciales de acceso.
 
@@ -37,11 +46,7 @@ class LoginRequest(ApiModel):
     @field_validator("email")
     @classmethod
     def _normalize_email(cls, value: str) -> str:
-        normalized = value.strip().lower()
-        local, separator, domain = normalized.partition("@")
-        if not separator or not local or not domain or "@" in domain:
-            raise ValueError("El email debe tener la forma usuario@dominio")
-        return normalized
+        return normalize_email_form(value)
 
 
 class UserRead(ApiModel):
@@ -71,3 +76,22 @@ class UserCreate(ApiModel):
     @classmethod
     def _normalize_email(cls, value: str) -> str:
         return value.strip().lower()
+
+
+class PasswordReset(ApiModel):
+    """Cambio de contraseña desde la CLI, para un usuario que ya existe.
+
+    El email se valida como en `LoginRequest`, no como en `UserCreate`: la
+    cuenta ya existe, y una dirección con un dominio de uso reservado
+    (`.test`, `.local`, `.internal`) es legítima en una herramienta interna.
+    Aplicar aquí la validación estricta dejaría a esas cuentas sin manera de
+    recuperar el acceso.
+    """
+
+    email: Annotated[str, Field(min_length=3, max_length=EMAIL_MAX_LENGTH)]
+    password: Annotated[str, Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)]
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, value: str) -> str:
+        return normalize_email_form(value)
