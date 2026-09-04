@@ -21,7 +21,7 @@ export default function ProjectsPage() {
 
   return (
     <AppShell
-      title="Projects"
+      title="Proyectos"
       subtitle={projectId ? 'Detalle del proyecto' : 'Proyectos y sitios auditados'}
       current="/projects"
     >

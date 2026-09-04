@@ -42,15 +42,15 @@ export function Badge({
   tone: 'ok' | 'warn' | 'muted';
   children: ReactNode;
 }) {
-  const styles: Record<typeof tone, string> = {
-    ok: 'text-brand-700 border-brand-300',
-    warn: 'text-amber-700 border-amber-300',
-    muted: '',
+  const styles: Record<typeof tone, { color: string; borderColor: string }> = {
+    ok: { color: 'var(--accent)', borderColor: 'var(--accent)' },
+    warn: { color: 'var(--tone-accessibility)', borderColor: 'var(--tone-accessibility)' },
+    muted: { color: 'var(--text-muted)', borderColor: 'var(--border)' },
   };
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${styles[tone]}`}
-      style={tone === 'muted' ? { borderColor: 'var(--border)', color: 'var(--text-muted)' } : {}}
+      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
+      style={styles[tone]}
     >
       {children}
     </span>

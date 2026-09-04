@@ -19,7 +19,7 @@ export default function FindingsPage() {
 
   return (
     <AppShell
-      title="Findings"
+      title="Hallazgos"
       subtitle="Hallazgos de seguridad, SEO y rendimiento"
       current="/findings"
     >

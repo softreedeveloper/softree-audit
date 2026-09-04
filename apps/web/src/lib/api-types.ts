@@ -711,6 +711,12 @@ export interface components {
             scans: number;
             /** Scans In Progress */
             scans_in_progress: number;
+            /** Score By Category */
+            score_by_category: {
+                [key: string]: number | null;
+            };
+            /** Score Trend */
+            score_trend: components["schemas"]["ScoreTrendPoint"][];
             /** Scored Sites */
             scored_sites: number;
             /** Sites */
@@ -1674,6 +1680,21 @@ export interface components {
             value: string | null;
             /** Weight */
             weight: string | null;
+        };
+        /**
+         * ScoreTrendPoint
+         * @description Un punto de la tendencia del Softree Score global.
+         */
+        ScoreTrendPoint: {
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /** Score */
+            score: number;
+            /** Site Name */
+            site_name: string;
         };
         /**
          * ScoringWeights

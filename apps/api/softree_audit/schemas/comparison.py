@@ -72,6 +72,14 @@ class RecentScan(ApiModel):
     finished_at: dt.datetime | None
 
 
+class ScoreTrendPoint(ApiModel):
+    """Un punto de la tendencia del Softree Score global."""
+
+    finished_at: dt.datetime
+    site_name: str
+    score: float
+
+
 class DashboardResponse(ApiModel):
     projects: int
     sites: int
@@ -81,4 +89,8 @@ class DashboardResponse(ApiModel):
     average_score: float | None
     scored_sites: int
     open_findings_by_severity: dict[str, int]
+    # Media por categoría sobre la última auditoría de cada sitio. `None` en una
+    # categoría significa que ningún sitio la midió, no que valga cero.
+    score_by_category: dict[str, float | None]
+    score_trend: list[ScoreTrendPoint]
     recent_scans: list[RecentScan]

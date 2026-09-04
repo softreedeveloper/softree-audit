@@ -4,7 +4,7 @@ import SettingsView from '../SettingsView';
 export default function SettingsPage() {
   return (
     <AppShell
-      title="Settings"
+      title="Configuración"
       subtitle="Configuración de la instancia"
       current="/settings"
     >

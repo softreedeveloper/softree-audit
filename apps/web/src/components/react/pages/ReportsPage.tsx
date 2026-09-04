@@ -16,7 +16,7 @@ export default function ReportsPage() {
   }, []);
 
   return (
-    <AppShell title="Reports" subtitle="Reportes PDF, HTML y JSON" current="/reports">
+    <AppShell title="Reportes" subtitle="Reportes PDF, HTML y JSON" current="/reports">
       {resolved ? (
         scanId ? (
           <ReportsView scanId={scanId} />

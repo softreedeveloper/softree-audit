@@ -4,7 +4,7 @@ import IntegrationsView from '../IntegrationsView';
 export default function IntegrationsPage() {
   return (
     <AppShell
-      title="Integrations"
+      title="Integraciones"
       subtitle="Google Search Console y PageSpeed Insights"
       current="/integrations"
     >

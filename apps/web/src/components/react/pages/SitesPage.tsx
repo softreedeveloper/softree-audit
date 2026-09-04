@@ -16,7 +16,7 @@ export default function SitesPage() {
   }, []);
 
   return (
-    <AppShell title="Site" subtitle="Configuración del sitio y su scope" current="/projects">
+    <AppShell title="Sitio" subtitle="Configuración del sitio y su scope" current="/projects">
       {resolved ? (
         siteId ? (
           <SiteDetailView siteId={siteId} />

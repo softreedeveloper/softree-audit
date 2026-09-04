@@ -20,7 +20,7 @@ export default function AuditsPage() {
 
   return (
     <AppShell
-      title="Audits"
+      title="Auditorías"
       subtitle={scanId ? 'Detalle de la auditoría' : 'Auditorías ejecutadas y en curso'}
       current="/audits"
     >

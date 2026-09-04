@@ -119,6 +119,27 @@
             "title": "Scans In Progress",
             "type": "integer"
           },
+          "score_by_category": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Score By Category",
+            "type": "object"
+          },
+          "score_trend": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreTrendPoint"
+            },
+            "title": "Score Trend",
+            "type": "array"
+          },
           "scored_sites": {
             "title": "Scored Sites",
             "type": "integer"
@@ -137,6 +158,8 @@
           "average_score",
           "scored_sites",
           "open_findings_by_severity",
+          "score_by_category",
+          "score_trend",
           "recent_scans"
         ],
         "title": "DashboardResponse",
@@ -2778,6 +2801,32 @@
           "engine_version"
         ],
         "title": "ScoreRead",
+        "type": "object"
+      },
+      "ScoreTrendPoint": {
+        "additionalProperties": false,
+        "description": "Un punto de la tendencia del Softree Score global.",
+        "properties": {
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "site_name": {
+            "title": "Site Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "finished_at",
+          "site_name",
+          "score"
+        ],
+        "title": "ScoreTrendPoint",
         "type": "object"
       },
       "ScoringWeights": {

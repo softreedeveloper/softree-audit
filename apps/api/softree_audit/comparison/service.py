@@ -288,6 +288,48 @@ class ComparisonService:
         )
         values = [float(value) for (value,) in overall_rows if value is not None]
 
+        category_rows = await self._session.execute(
+            sa.select(Score.category, sa.func.avg(Score.value))
+            .join(Scan, Scan.id == Score.scan_id)
+            .join(Site, Site.id == Scan.site_id)
+            .join(Project, Project.id == Site.project_id)
+            .where(
+                self._owned(),
+                Score.system == ScoreSystem.SOFTREE,
+                Score.category != ScoreCategory.OVERALL,
+                Score.value.is_not(None),
+                Scan.id.in_(self._latest_scan_ids()),
+            )
+            .group_by(Score.category)
+        )
+        by_category = {
+            category.value: round(float(average), 1) for category, average in category_rows
+        }
+
+        # Serie del score global de las últimas auditorías terminadas, en orden
+        # cronológico. Es lo que dibuja la tendencia de la portada.
+        trend_rows = await self._session.execute(
+            sa.select(Scan.finished_at, Score.value, Site.name)
+            .join(Site, Site.id == Scan.site_id)
+            .join(Project, Project.id == Site.project_id)
+            .join(Score, Score.scan_id == Scan.id)
+            .where(
+                self._owned(),
+                Scan.status.in_(TERMINAL_WITH_DATA),
+                Scan.finished_at.is_not(None),
+                Score.system == ScoreSystem.SOFTREE,
+                Score.category == ScoreCategory.OVERALL,
+                Score.value.is_not(None),
+            )
+            .order_by(Scan.finished_at.desc())
+            .limit(20)
+        )
+        trend = [
+            {"finished_at": finished_at, "site_name": name, "score": round(float(value), 1)}
+            for finished_at, value, name in trend_rows
+        ]
+        trend.reverse()
+
         return {
             "projects": int(projects or 0),
             "sites": int(sites or 0),
@@ -300,6 +342,17 @@ class ComparisonService:
                 severity: by_severity.get(severity, 0)
                 for severity in ("critical", "high", "medium", "low", "info")
             },
+            "score_by_category": {
+                category: by_category.get(category)
+                for category in (
+                    "security",
+                    "performance",
+                    "seo",
+                    "accessibility",
+                    "best_practices",
+                )
+            },
+            "score_trend": trend,
             "recent_scans": [
                 {
                     "scan_id": scan.id,

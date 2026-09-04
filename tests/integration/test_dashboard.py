@@ -398,3 +398,93 @@ async def test_a_module_that_did_not_run_is_not_reported_as_fixed(
     assert body["counts"]["fixed"] == 0
     assert body["compared_sources"] == ["crawler", "seo"]
     assert body["sources_only_in_previous"] == ["zap"]
+
+
+async def test_dashboard_reports_the_score_by_category(
+    auth_client: AsyncClient, user: User, app_context: tuple[object, AsyncSession]
+) -> None:
+    """La portada necesita el desglose, no solo el score global."""
+    _, session = app_context
+    site = await _site(session, user)
+    scan = await _scan(session, site, status=ScanStatus.COMPLETED)
+    session.add_all(
+        [
+            Score(
+                scan_id=scan.id,
+                system=ScoreSystem.SOFTREE,
+                category=ScoreCategory.SEO,
+                value=decimal.Decimal("91.7"),
+                engine_version="0.1.0",
+            ),
+            Score(
+                scan_id=scan.id,
+                system=ScoreSystem.SOFTREE,
+                category=ScoreCategory.SECURITY,
+                value=decimal.Decimal("83.2"),
+                engine_version="0.1.0",
+            ),
+        ]
+    )
+    await session.commit()
+
+    body = (await auth_client.get(DASHBOARD)).json()
+
+    assert body["score_by_category"]["seo"] == 91.7
+    assert body["score_by_category"]["security"] == 83.2
+    # Una categoría que ningún sitio midió es `null`, nunca cero.
+    assert body["score_by_category"]["accessibility"] is None
+
+
+async def test_dashboard_reports_the_score_trend_in_order(
+    auth_client: AsyncClient, user: User, app_context: tuple[object, AsyncSession]
+) -> None:
+    _, session = app_context
+    site = await _site(session, user)
+
+    for index, value in enumerate(("70.0", "80.0", "90.0")):
+        scan = await _scan(session, site, status=ScanStatus.COMPLETED)
+        scan.finished_at = dt.datetime(2026, 9, 1 + index, 12, 0, tzinfo=dt.UTC)
+        session.add(
+            Score(
+                scan_id=scan.id,
+                system=ScoreSystem.SOFTREE,
+                category=ScoreCategory.OVERALL,
+                value=decimal.Decimal(value),
+                engine_version="0.1.0",
+            )
+        )
+    await session.commit()
+
+    trend = (await auth_client.get(DASHBOARD)).json()["score_trend"]
+
+    # Orden cronológico: el gráfico se dibuja de izquierda a derecha.
+    assert [point["score"] for point in trend] == [70.0, 80.0, 90.0]
+    assert trend[0]["site_name"] == site.name
+
+
+@pytest.mark.security
+async def test_the_trend_only_contains_your_own_audits(
+    auth_client: AsyncClient,
+    user: User,
+    other_user: User,
+    app_context: tuple[object, AsyncSession],
+) -> None:
+    _, session = app_context
+    foreign_site = await _site(session, other_user)
+    foreign = await _scan(session, foreign_site, status=ScanStatus.COMPLETED)
+    foreign.finished_at = dt.datetime(2026, 9, 2, 12, 0, tzinfo=dt.UTC)
+    session.add(
+        Score(
+            scan_id=foreign.id,
+            system=ScoreSystem.SOFTREE,
+            category=ScoreCategory.OVERALL,
+            value=decimal.Decimal("42.0"),
+            engine_version="0.1.0",
+        )
+    )
+    await session.commit()
+
+    body = (await auth_client.get(DASHBOARD)).json()
+
+    assert body["score_trend"] == []
+    assert all(value is None for value in body["score_by_category"].values())

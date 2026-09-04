@@ -16,8 +16,10 @@ let scanUrl = '';
 
 test('inicia sesión y llega al dashboard', async ({ page }) => {
   await login(page);
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-  await expect(page.getByText('SOFTREE SCORE MEDIO')).toBeVisible();
+  // El encabezado del resumen es el saludo; el dato que confirma que cargó es
+  // la tarjeta de puntuación.
+  await expect(page.getByRole('heading', { name: /Buen[oa]s (días|tardes|noches)/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Softree Score medio' })).toBeVisible();
 });
 
 test('crea un proyecto', async ({ page }) => {

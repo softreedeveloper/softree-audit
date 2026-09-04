@@ -4,24 +4,131 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 
-import { getSession, bootstrapSession, signOut, subscribe, type SessionState } from '../../lib/session';
+import { request } from '../../lib/api';
+import {
+  bootstrapSession,
+  getSession,
+  signOut,
+  subscribe,
+  type SessionState,
+} from '../../lib/session';
+import type { HealthResponse } from '../../lib/types';
 import { LoadingState, UnauthorizedState } from './UiStates';
 import ThemeToggle from './ThemeToggle';
 
 interface NavItem {
   label: string;
   href: string;
-  icon: string;
+  icon: ReactNode;
 }
 
-const NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: '▤' },
-  { label: 'Projects', href: '/projects', icon: '▣' },
-  { label: 'Audits', href: '/audits', icon: '◎' },
-  { label: 'Findings', href: '/findings', icon: '⚑' },
-  { label: 'Reports', href: '/reports', icon: '▦' },
-  { label: 'Integrations', href: '/integrations', icon: '⧉' },
-  { label: 'Settings', href: '/settings', icon: '⚙' },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+/* Iconos en línea: son cuatro trazos y evitan cargar una tipografía de iconos
+   solo para la barra lateral. */
+const icon = (path: ReactNode) => (
+  <svg
+    viewBox="0 0 16 16"
+    className="size-4 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {path}
+  </svg>
+);
+
+const NAV: NavGroup[] = [
+  {
+    title: 'Monitorizar',
+    items: [
+      {
+        label: 'Resumen',
+        href: '/dashboard',
+        icon: icon(
+          <>
+            <rect x="2" y="2" width="5" height="5" rx="1" />
+            <rect x="9" y="2" width="5" height="5" rx="1" />
+            <rect x="2" y="9" width="5" height="5" rx="1" />
+            <rect x="9" y="9" width="5" height="5" rx="1" />
+          </>,
+        ),
+      },
+      {
+        label: 'Proyectos',
+        href: '/projects',
+        icon: icon(
+          <>
+            <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.2l1.2 1.5h5.6A1.5 1.5 0 0 1 14 6v6a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12z" />
+          </>,
+        ),
+      },
+      {
+        label: 'Auditorías',
+        href: '/audits',
+        icon: icon(
+          <>
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="m10.5 10.5 3 3" />
+          </>,
+        ),
+      },
+      {
+        label: 'Hallazgos',
+        href: '/findings',
+        icon: icon(
+          <>
+            <path d="M8 2.5 14 13H2z" />
+            <path d="M8 6.5v3" />
+            <path d="M8 11.2v.1" />
+          </>,
+        ),
+      },
+    ],
+  },
+  {
+    title: 'Entregar',
+    items: [
+      {
+        label: 'Reportes',
+        href: '/reports',
+        icon: icon(
+          <>
+            <path d="M4 2h5l3 3v9H4z" />
+            <path d="M9 2v3h3" />
+            <path d="M6 8.5h4M6 11h3" />
+          </>,
+        ),
+      },
+      {
+        label: 'Integraciones',
+        href: '/integrations',
+        icon: icon(
+          <>
+            <rect x="2" y="2" width="5.5" height="5.5" rx="1.2" />
+            <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" />
+            <path d="M7.5 4.8h3a2 2 0 0 1 2 2v1.7" />
+          </>,
+        ),
+      },
+      {
+        label: 'Configuración',
+        href: '/settings',
+        icon: icon(
+          <>
+            <circle cx="8" cy="8" r="2" />
+            <path d="M8 1.5v1.7M8 12.8v1.7M14.5 8h-1.7M3.2 8H1.5M12.6 3.4l-1.2 1.2M4.6 11.4l-1.2 1.2M12.6 12.6l-1.2-1.2M4.6 4.6 3.4 3.4" />
+          </>,
+        ),
+      },
+    ],
+  },
 ];
 
 interface AppShellProps {
@@ -33,6 +140,7 @@ interface AppShellProps {
 
 export default function AppShell({ title, subtitle, current, children }: AppShellProps) {
   const [session, setSession] = useState<SessionState>(getSession());
+  const [health, setHealth] = useState<HealthResponse | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribe(setSession);
@@ -40,86 +148,140 @@ export default function AppShell({ title, subtitle, current, children }: AppShel
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (session.status !== 'authenticated') return;
+    // El estado del servicio se consulta una vez por carga: es un indicador,
+    // no un monitor en tiempo real.
+    request<HealthResponse>('/health')
+      .then(setHealth)
+      .catch(() => setHealth(null));
+  }, [session.status]);
+
+  const operational = health?.status === 'ok';
+  const initials = (session.user?.full_name ?? session.user?.email ?? 'S')
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
   return (
     <div className="flex min-h-screen">
       <aside
-        className="hidden w-60 shrink-0 flex-col border-r px-3 py-4 md:flex"
-        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-raised)' }}
+        className="hidden w-64 shrink-0 flex-col border-r px-3 py-5 md:flex"
+        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-sidebar)' }}
       >
-        <a href="/dashboard" className="mb-6 flex items-center gap-2 px-2">
-          <img src="/brand/softree-isotipo.png" alt="" className="size-8" aria-hidden="true" />
-          <span className="text-sm leading-tight font-semibold">
-            SOFTREE
-            <span className="sf-muted block text-[11px] font-normal tracking-wide">AUDIT</span>
+        <a href="/dashboard" className="mb-6 flex items-center gap-3 px-2">
+          <span
+            className="grid size-9 place-items-center rounded-xl text-base font-bold"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-contrast)' }}
+            aria-hidden="true"
+          >
+            S
+          </span>
+          <span className="leading-tight">
+            <span className="block text-sm font-semibold tracking-[0.18em]">SOFTREE</span>
+            <span className="sf-label block">Audit platform</span>
           </span>
         </a>
 
-        <nav className="flex flex-1 flex-col gap-0.5" aria-label="Navegación principal">
-          {NAV.map((item) => {
-            const active = item.href === current;
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm"
-                style={
-                  active
-                    ? { backgroundColor: 'var(--surface-muted)', color: 'var(--text)' }
-                    : { color: 'var(--text-muted)' }
-                }
-              >
-                <span aria-hidden="true" className="w-4 text-center">
+        {session.user ? (
+          <div
+            className="mb-6 flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <span className="sf-dot" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate">{session.user.full_name}</span>
+          </div>
+        ) : null}
+
+        <nav className="flex flex-1 flex-col gap-6" aria-label="Navegación principal">
+          {NAV.map((group) => (
+            <div key={group.title} className="flex flex-col gap-1">
+              <p className="sf-label px-3 pb-1">{group.title}</p>
+              {group.items.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  aria-current={item.href === current ? 'page' : undefined}
+                  className="sf-nav-item"
+                >
                   {item.icon}
-                </span>
-                {item.label}
-              </a>
-            );
-          })}
+                  <span className="flex-1">{item.label}</span>
+                </a>
+              ))}
+            </div>
+          ))}
         </nav>
 
-        <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+        <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
           <ThemeToggle />
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col" style={{ backgroundColor: 'var(--surface)' }}>
         <header
-          className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-6"
-          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-raised)' }}
+          className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 md:px-8"
+          style={{ borderColor: 'var(--border)' }}
         >
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold">{title}</h1>
-            {subtitle ? <p className="sf-muted truncate text-sm">{subtitle}</p> : null}
-          </div>
+          <nav className="flex min-w-0 items-center gap-2 text-sm" aria-label="Migas de pan">
+            <span style={{ color: 'var(--text-faint)' }}>Workspace</span>
+            <span style={{ color: 'var(--text-faint)' }} aria-hidden="true">
+              /
+            </span>
+            <span className="truncate font-medium">{title}</span>
+          </nav>
 
           <div className="flex items-center gap-3">
-            {session.user ? (
-              <span className="sf-muted hidden text-sm sm:inline">{session.user.email}</span>
+            {health ? (
+              <span className="hidden items-center gap-2 text-xs sm:flex">
+                <span
+                  className="sf-dot"
+                  style={operational ? undefined : { backgroundColor: 'var(--tone-danger)' }}
+                  aria-hidden="true"
+                />
+                <span className="sf-muted">
+                  {operational ? 'Todos los servicios operativos' : 'Servicio degradado'}
+                </span>
+              </span>
             ) : null}
+
             {session.status === 'authenticated' ? (
-              <button
-                type="button"
-                className="sf-btn sf-btn-ghost"
-                onClick={() => {
-                  void signOut().then(() => window.location.assign('/login'));
-                }}
-              >
-                Cerrar sesión
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="sf-btn sf-btn-ghost !px-3"
+                  title="Cerrar sesión"
+                  onClick={() => {
+                    void signOut().then(() => window.location.assign('/login'));
+                  }}
+                >
+                  Salir
+                </button>
+                <span
+                  className="grid size-8 place-items-center rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-contrast)' }}
+                  title={session.user?.email}
+                >
+                  {initials}
+                </span>
+              </>
             ) : null}
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 md:px-6">
-          <div className="mx-auto flex max-w-6xl flex-col gap-4">
+        <main className="flex-1 px-4 py-8 md:px-8">
+          <div className="mx-auto flex max-w-6xl flex-col gap-5">
+            {subtitle && session.status === 'authenticated' ? (
+              <p className="sf-muted -mb-1 text-sm">{subtitle}</p>
+            ) : null}
             {session.status === 'loading' ? <LoadingState label="Restaurando sesión…" /> : null}
             {session.status === 'anonymous' ? <UnauthorizedState /> : null}
             {session.status === 'authenticated' ? children : null}
           </div>
         </main>
 
-        <footer className="sf-muted px-4 py-4 text-xs md:px-6">
+        <footer className="sf-muted px-4 py-6 text-xs md:px-8">
           SOFTREE AUDIT · Uso interno. Auditar únicamente sitios propios, entregados por Softree o
           con autorización explícita del cliente.
         </footer>

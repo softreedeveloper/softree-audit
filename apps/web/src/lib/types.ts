@@ -399,6 +399,12 @@ export interface ScanScores {
   disclaimer: string;
 }
 
+export interface ScoreTrendPoint {
+  finished_at: string;
+  site_name: string;
+  score: number;
+}
+
 export interface DashboardData {
   projects: number;
   sites: number;
@@ -408,6 +414,9 @@ export interface DashboardData {
   average_score: number | null;
   scored_sites: number;
   open_findings_by_severity: Record<Severity, number>;
+  /** `null` en una categoría significa que ningún sitio la midió, no cero. */
+  score_by_category: Record<string, number | null>;
+  score_trend: ScoreTrendPoint[];
   recent_scans: {
     scan_id: string;
     site_name: string;
