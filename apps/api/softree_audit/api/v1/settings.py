@@ -73,6 +73,21 @@ async def instance_settings(user: CurrentUser, settings: AppSettings) -> Instanc
                 variables=["PAGESPEED_API_KEY"],
             ),
             IntegrationStatus(
+                key="ai",
+                name="Análisis asistido por IA",
+                configured=bool(settings.ai_api_url and settings.ai_api_key),
+                detail=(
+                    f"Modelo {settings.ai_model}. Redacta el análisis del reporte a partir de "
+                    "los hallazgos ya normalizados."
+                    if settings.ai_api_url and settings.ai_api_key
+                    else (
+                        "Sin AI_API_URL y AI_API_KEY el reporte se genera sin la sección de "
+                        "análisis. No se inventa el texto."
+                    )
+                ),
+                variables=["AI_API_URL", "AI_API_KEY", "AI_MODEL"],
+            ),
+            IntegrationStatus(
                 key="search_console",
                 name="Google Search Console",
                 configured=bool(settings.google_client_id and settings.google_client_secret),

@@ -4,6 +4,7 @@ Importar desde aquí garantiza que todas las tablas queden registradas en
 `Base.metadata` antes de que Alembic las compare.
 """
 
+from softree_audit.models.ai import AiAnalysis
 from softree_audit.models.enums import (
     Confidence,
     ConnectionStatus,
@@ -35,6 +36,7 @@ from softree_audit.models.site import Scope, Site
 from softree_audit.models.user import RefreshToken, User
 
 __all__ = [
+    "AiAnalysis",
     "Confidence",
     "ConnectionStatus",
     "Finding",

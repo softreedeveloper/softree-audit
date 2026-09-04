@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     pagespeed_api_key: str | None = None
     pagespeed_cache_ttl_seconds: Annotated[int, Field(ge=0, le=86400)] = 21600
 
+    # Análisis asistido por IA. Sin URL y clave, el reporte se genera igual y
+    # sin la sección: no se inventa el análisis.
+    ai_api_url: str | None = None
+    ai_api_key: str | None = None
+    ai_model: str = "qwen2.5:7b"
+    ai_timeout_seconds: Annotated[int, Field(ge=5, le=600)] = 300
+    ai_max_tokens: Annotated[int, Field(ge=64, le=4096)] = 900
+    ai_temperature: Annotated[float, Field(ge=0.0, le=1.0)] = 0.3
+
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str = "http://localhost:8000/api/v1/integrations/google/callback"

@@ -186,3 +186,9 @@ table { border-collapse: collapse; width: 100%; font-size: 9.5pt; }
   text-transform: uppercase;
   color: var(--muted);
 }
+
+/* Prioridad de una recomendación redactada por el analizador. Mismo criterio
+   de color que las gravedades, para que se lean igual de un vistazo. */
+.priority-alta { color: #dc2626; }
+.priority-media { color: #b45309; }
+.priority-baja { color: var(--brand-dark); }

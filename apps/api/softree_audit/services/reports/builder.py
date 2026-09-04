@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from softree_audit.comparison.service import ComparisonService, NoPreviousScanError
 from softree_audit.core.errors import NotFoundError
 from softree_audit.models import (
+    AiAnalysis,
     Finding,
     FindingSource,
     FindingStatus,
@@ -28,6 +29,8 @@ from softree_audit.models import (
     Site,
 )
 from softree_audit.services.reports.model import (
+    AiRecommendationBlock,
+    ReportAnalysis,
     ReportComparison,
     ReportFinding,
     ReportModel,
@@ -132,9 +135,39 @@ class ReportBuilder:
             _to_report_finding(item) for item in findings[:MAX_RECOMMENDATIONS]
         ]
         await self._fill_comparison(scan_id, model)
+        await self._fill_ai_analysis(scan_id, model)
         return model
 
     # ── Partes ─────────────────────────────────────────────────────────────
+
+    async def _fill_ai_analysis(self, scan_id: uuid.UUID, model: ReportModel) -> None:
+        """Incorpora el análisis ya almacenado, si lo hay.
+
+        El builder no llama al modelo de lenguaje: solo lee lo persistido, de
+        modo que regenerar un formato no vuelva a pagar la llamada ni cambie el
+        texto de un reporte ya entregado.
+        """
+        analysis = await self._session.scalar(
+            sa.select(AiAnalysis).where(AiAnalysis.scan_id == scan_id)
+        )
+        if analysis is None:
+            return
+
+        model.ai_analysis = ReportAnalysis(
+            summary=analysis.summary,
+            recommendations=[
+                AiRecommendationBlock(
+                    title=str(item.get("title", "")),
+                    detail=str(item.get("detail", "")),
+                    priority=str(item.get("priority", "media")),
+                )
+                for item in analysis.recommendations
+                if isinstance(item, dict)
+            ],
+            risks=[str(item) for item in analysis.risks],
+            model=analysis.model,
+            generated_at=analysis.generated_at,
+        )
 
     async def _fill_scores(self, scan_id: uuid.UUID, model: ReportModel) -> None:
         rows = (

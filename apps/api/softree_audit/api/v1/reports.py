@@ -22,7 +22,7 @@ NOT_FOUND: dict[int | str, dict[str, object]] = {
 
 
 def get_service(session: DbSession, user: CurrentUser, settings: AppSettings) -> ReportService:
-    return ReportService(session, user.id, settings.reports_dir)
+    return ReportService(session, user.id, settings.reports_dir, settings)
 
 
 ServiceDep = Annotated[ReportService, Depends(get_service)]

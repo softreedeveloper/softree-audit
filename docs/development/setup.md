@@ -149,3 +149,20 @@ docker compose up -d api worker
 ```
 
 El estado de las tres integraciones se comprueba en `/settings` de la interfaz.
+
+## Análisis con IA
+
+Opcional. Sin configurar, el reporte se genera sin la sección de análisis.
+
+Requiere un endpoint compatible con la API de chat de Ollama (`POST /api/chat`):
+
+```
+AI_API_URL=https://<host>/api/chat
+AI_API_KEY=<token>
+AI_MODEL=qwen2.5:7b
+AI_TIMEOUT_SECONDS=300
+```
+
+La primera generación de cada auditoría llama al modelo y puede tardar varios
+minutos si el modelo se carga en frío; las siguientes reutilizan el texto
+guardado. Lo que se envía y por qué está en `docs/spec/reports.md` §8.

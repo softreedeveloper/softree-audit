@@ -108,28 +108,63 @@ Cada reporte persiste `report_version`, `engine_version`, `app_version`,
 `generated_at` y `checksum_sha256`. Un PDF entregado se puede reasociar a los
 datos exactos que lo originaron.
 
-## 8. Módulo futuro de IA
+## 8. Análisis asistido por IA
 
-No se implementa en el MVP. Interfaz conceptual prevista:
+Implementado. Un modelo de lenguaje redacta un análisis del reporte a partir de
+los hallazgos ya normalizados:
 
 ```
-Finding
+Findings normalizados + puntuaciones
  ↓
-AI Analyzer
+Analizador (endpoint compatible con la API de chat de Ollama)
  ↓
-Explanation
+Resumen + riesgos principales + recomendaciones priorizadas
  ↓
-Risk prioritization
- ↓
-Recommendation
- ↓
-Executive summary
+Sección propia del reporte, marcada como generada automáticamente
 ```
 
-Restricciones de diseño ya asumidas:
+### Restricciones que se cumplen
 
-1. El analizador recibe findings ya normalizados y no emite tráfico hacia el
-   target.
-2. No puede ejecutar acciones ofensivas ni modificar el estado de findings.
-3. Su salida se marca como generada automáticamente y es revisable antes de
-   incorporarse a un reporte entregable.
+1. **No emite tráfico hacia el sitio auditado.** Recibe el `ReportModel` ya
+   construido; no conoce ninguna URL que pueda visitar.
+2. **No modifica el estado de ningún hallazgo.** Su salida es texto que se
+   imprime en una sección; no crea, cierra ni reclasifica findings, ni altera
+   las puntuaciones.
+3. **Se marca como generada automáticamente.** La sección declara el modelo, la
+   fecha y un aviso de que debe revisarse antes de entregarla.
+
+### Contenido que se envía
+
+Solo un resumen estructurado: dominio, páginas rastreadas, puntuaciones,
+recuento por gravedad, estado de los módulos y hasta 25 hallazgos con regla,
+título, gravedad, categoría, fuente, número de casos y URL.
+
+**No se envía la evidencia.** Es el campo con más superficie de inyección y el
+que menos aporta para redactar recomendaciones. Todo texto se recorta antes de
+salir.
+
+### Inyección de prompt
+
+El contenido procede de un sitio que la plataforma asume hostil
+(`docs/spec/security.md` §50): un título de página puede estar redactado para
+dar instrucciones al modelo. Defensas:
+
+- El mensaje de sistema declara que el bloque siguiente son datos y no
+  instrucciones, y ordena ignorar cualquier texto que pida lo contrario.
+- Los datos viajan delimitados en `<datos_auditoria>`.
+- La salida se acota: 1500 caracteres de resumen, 5 recomendaciones, 3 riesgos.
+  El modelo no decide cuánto ocupa en el documento.
+- La salida no dispara ninguna acción: solo se imprime, con autoescapado.
+
+### Persistencia y coste
+
+El análisis se guarda una vez por auditoría en `ai_analyses`, con el modelo, la
+versión del prompt, la duración y los tokens consumidos. Regenerar el reporte en
+otro formato o para otra audiencia reutiliza el texto: un documento ya entregado
+no debe cambiar de redacción a espaldas de quien lo entregó.
+
+### Degradación
+
+Sin `AI_API_URL` y `AI_API_KEY` el reporte se genera sin la sección. Si el
+servicio falla o agota el tiempo, se registra el motivo y el reporte se emite
+igualmente. Nunca se inventa el análisis.

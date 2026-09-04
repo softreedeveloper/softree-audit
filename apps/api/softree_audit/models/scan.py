@@ -25,6 +25,7 @@ from softree_audit.models.enums import (
 )
 
 if TYPE_CHECKING:
+    from softree_audit.models.ai import AiAnalysis
     from softree_audit.models.finding import Finding
     from softree_audit.models.page import Page
     from softree_audit.models.report import Report
@@ -106,6 +107,9 @@ class Scan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="scan", cascade="all, delete-orphan", passive_deletes=True
     )
     reports: Mapped[list[Report]] = relationship(
+        back_populates="scan", cascade="all, delete-orphan", passive_deletes=True
+    )
+    ai_analysis: Mapped[AiAnalysis | None] = relationship(
         back_populates="scan", cascade="all, delete-orphan", passive_deletes=True
     )
 

@@ -10,6 +10,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from softree_audit.core.config import Settings
 from softree_audit.core.errors import AppError, NotFoundError
 from softree_audit.core.logging import get_logger
 from softree_audit.models import (
@@ -21,6 +22,7 @@ from softree_audit.models import (
     ScanStatus,
     Site,
 )
+from softree_audit.reports.ai_service import AiAnalysisService
 from softree_audit.services.reports.builder import ReportBuilder
 from softree_audit.services.reports.model import ReportModel
 from softree_audit.services.reports.renderer import render_html, render_json, render_pdf
@@ -54,10 +56,18 @@ class ReportFileMissingError(AppError):
 
 
 class ReportService:
-    def __init__(self, session: AsyncSession, owner_id: uuid.UUID, reports_dir: str) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        owner_id: uuid.UUID,
+        reports_dir: str,
+        settings: Settings | None = None,
+    ) -> None:
         self._session = session
         self._owner_id = owner_id
         self._root = pathlib.Path(reports_dir)
+        # Sin configuración de IA el reporte se genera igual, sin esa sección.
+        self._ai = AiAnalysisService(session, settings) if settings is not None else None
 
     async def _owned_scan(self, scan_id: uuid.UUID) -> Scan:
         scan = (
@@ -84,6 +94,9 @@ class ReportService:
             raise ScanNotFinishedError()
 
         model = await ReportBuilder(self._session, self._owner_id).build(scan_id)
+        if self._ai is not None:
+            # Antes de renderizar: los tres formatos deben contener lo mismo.
+            await self._ai.ensure(scan_id, model)
         generated: list[Report] = []
 
         for report_format in formats:

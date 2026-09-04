@@ -17,6 +17,12 @@ METHODOLOGY_DISCLAIMER = (
     "no constituye una calificación oficial de Google."
 )
 
+AI_DISCLAIMER = (
+    "El apartado «Análisis asistido por IA» lo redactó un modelo de lenguaje a partir de los "
+    "hallazgos de esta misma auditoría. No añade mediciones ni sustituye el criterio del "
+    "consultor: revíselo antes de entregarlo."
+)
+
 SCOPE_DISCLAIMER = (
     "El análisis de seguridad es pasivo: examina las respuestas del sitio sin enviarle "
     "peticiones de ataque. No cubre todas las clases de vulnerabilidad, y la ausencia de "
@@ -64,6 +70,28 @@ class ReportComparison:
 
 
 @dataclass(slots=True)
+class AiRecommendationBlock:
+    title: str
+    detail: str
+    priority: str
+
+
+@dataclass(slots=True)
+class ReportAnalysis:
+    """Análisis redactado por el modelo de lenguaje.
+
+    Va siempre acompañado de su procedencia: el reporte debe dejar claro qué
+    parte del texto la escribió una máquina (`docs/spec/reports.md` §8).
+    """
+
+    summary: str
+    recommendations: list[AiRecommendationBlock] = field(default_factory=list)
+    risks: list[str] = field(default_factory=list)
+    model: str = ""
+    generated_at: dt.datetime | None = None
+
+
+@dataclass(slots=True)
 class ReportModel:
     """Todo lo que el reporte muestra, en un único objeto."""
 
@@ -92,6 +120,7 @@ class ReportModel:
     sections: list[ReportSection] = field(default_factory=list)
     recommendations: list[ReportFinding] = field(default_factory=list)
     comparison: ReportComparison | None = None
+    ai_analysis: ReportAnalysis | None = None
 
     pages_crawled: int = 0
     urls_discovered: int = 0
@@ -100,6 +129,7 @@ class ReportModel:
 
     methodology_disclaimer: str = METHODOLOGY_DISCLAIMER
     scope_disclaimer: str = SCOPE_DISCLAIMER
+    ai_disclaimer: str = AI_DISCLAIMER
 
     @property
     def total_findings(self) -> int:
@@ -118,5 +148,7 @@ class ReportModel:
                 if self.comparison.previous_finished_at
                 else None
             )
+        if self.ai_analysis is not None and self.ai_analysis.generated_at is not None:
+            data["ai_analysis"]["generated_at"] = self.ai_analysis.generated_at.isoformat()
         data["total_findings"] = self.total_findings
         return data

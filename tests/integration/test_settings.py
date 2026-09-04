@@ -60,7 +60,7 @@ async def test_integrations_expose_state_not_values(
     response = await auth_client.get(SETTINGS)
     integrations = {item["key"]: item for item in response.json()["integrations"]}
 
-    assert set(integrations) == {"zap", "pagespeed", "search_console"}
+    assert set(integrations) == {"zap", "pagespeed", "search_console", "ai"}
     for integration in integrations.values():
         assert isinstance(integration["configured"], bool)
         assert integration["detail"]
@@ -82,6 +82,7 @@ async def test_never_serialises_secret_values(
 ) -> None:
     """Con todas las credenciales presentes, ninguna aparece en la respuesta."""
     secrets = {
+        "ai_api_key": "ia-secreto-de-prueba",
         "zap_api_key": "zap-secreto-de-prueba",
         "pagespeed_api_key": "psi-secreto-de-prueba",
         "google_client_id": "cliente-secreto-de-prueba",

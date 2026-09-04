@@ -197,6 +197,47 @@
     </section>
     {% endif %}
 
+    {# ── Análisis asistido por IA ────────────────────────────────────── #}
+    {% if model.ai_analysis %}
+    <section class="page">
+      <h2>Análisis asistido por IA</h2>
+      <p class="note">{{ model.ai_disclaimer }}</p>
+
+      {% if model.ai_analysis.summary %}
+      <p class="lead">{{ model.ai_analysis.summary }}</p>
+      {% endif %}
+
+      {% if model.ai_analysis.risks %}
+      <h3>Riesgos principales</h3>
+      <ul class="modules">
+        {% for risk in model.ai_analysis.risks %}
+        <li>{{ risk }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if model.ai_analysis.recommendations %}
+      <h3>Recomendaciones</h3>
+      <ol class="recommendations">
+        {% for item in model.ai_analysis.recommendations %}
+        <li>
+          <span class="badge priority-{{ item.priority }}">{{ item.priority }}</span>
+          <strong>{{ item.title }}</strong>
+          {% if item.detail %}<br />{{ item.detail }}{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+
+      <p class="meta">
+        Generado con {{ model.ai_analysis.model }}
+        {% if model.ai_analysis.generated_at %}
+          el {{ model.ai_analysis.generated_at.strftime('%d/%m/%Y %H:%M') }}
+        {% endif %}
+      </p>
+    </section>
+    {% endif %}
+
     {# ── Comparación ─────────────────────────────────────────────────── #}
     {% if model.comparison %}
     <section class="page">

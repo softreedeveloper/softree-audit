@@ -11,14 +11,15 @@ carencias se declaran como tales.
 
 | Comprobación | Comando | Resultado |
 |--------------|---------|-----------|
-| Suite Python completa | `make test` | 738 pruebas, 0 fallos |
+| Suite Python completa | `make test` | 766 pruebas, 0 fallos |
 | Linters y tipos | `make lint` | ruff, ruff format, mypy (125 archivos) y `astro check` + `tsc` sin errores |
 | Esquema OpenAPI | `make openapi` | 37 rutas, 45 operaciones, 72 esquemas |
 | Migraciones al día | `alembic check` | Sin cambios pendientes |
 | Auditoría real de extremo a extremo | `test-target` en la red Docker | 18 páginas, 16 reglas SEO, 83 alertas ZAP normalizadas a 6 findings, score 87.1, PDF de 22 páginas |
 | Cadena de performance contra la API real | `PageSpeedClient` sobre `https://example.com` | Dos estrategias, 8 Google Scores, 6 métricas, caché en Redis acertando en la repetición y un finding PSI-008 por estrategia |
+| Análisis con IA contra el servicio real | Auditoría de `stage.movapp.org` | qwen2.5:7b, 2599 tokens de prompt y 471 de respuesta en 179 s; resumen, 3 riesgos y 5 recomendaciones, todas correspondientes a hallazgos reales de esa auditoría |
 
-Reparto de pruebas: 549 unitarias, 189 de integración, 182 marcadas `security`
+Reparto de pruebas: 570 unitarias, 196 de integración, 185 marcadas `security`
 (los marcadores se solapan: una prueba de integración puede ser además de
 seguridad). Las E2E son 20 especificaciones de Playwright: 11 de flujo y 9 de
 seguridad.
@@ -113,14 +114,26 @@ la plataforma, no solo leyendo el código.
 5. **Sin integración continua.** No hay `.github/workflows`. Los comandos que
    ejecutaría (`make lint`, `make test`) están listos y documentados.
 
-## 6. Fuera de alcance, por decisión
+## 6. Análisis asistido por IA
+
+| Control | Estado | Evidencia |
+|---------|--------|-----------|
+| No emite tráfico hacia el sitio auditado | Cumplido | Recibe el `ReportModel` ya construido |
+| No modifica el estado de los hallazgos | Cumplido | Su salida solo se imprime en una sección |
+| Se declara como generada automáticamente | Cumplido | Aviso, modelo y fecha en la propia sección |
+| La evidencia del sitio no sale de la plataforma | Cumplido | `tests/unit/test_ai_prompt.py` y `tests/integration/test_reports_ai.py` |
+| El modelo no decide cuánto ocupa | Cumplido | Resumen, recomendaciones y riesgos acotados |
+| Un fallo del servicio no impide entregar el reporte | Cumplido | Verificado con un 503 simulado |
+| Sin credenciales no se llama ni se inventa el texto | Cumplido | Verificado sin configuración |
+
+## 7. Fuera de alcance, por decisión
 
 Active pentesting, ejecución de exploits, ataques a credenciales, fuerza bruta,
 detección de malware, escáner público, escaneo arbitrario de Internet,
 explotación automatizada, facturación, registro público, equipos, RBAC complejo
 y agentes autónomos. Ninguno está implementado ni parcialmente presente.
 
-## 7. Conclusión
+## 8. Conclusión
 
 Los 16 requisitos funcionales y los 9 no funcionales están implementados. La
 única carencia de verificación que queda por credenciales es Search Console;
