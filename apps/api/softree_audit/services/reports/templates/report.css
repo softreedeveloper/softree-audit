@@ -177,3 +177,12 @@ table { border-collapse: collapse; width: 100%; font-size: 9.5pt; }
 
 .recommendations li { margin-bottom: 3mm; page-break-inside: avoid; }
 .modules { font-size: 9.5pt; }
+
+/* Distintivo de la versión del documento en la portada. */
+.cover .audience {
+  margin-top: 18mm;
+  font-size: 10pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

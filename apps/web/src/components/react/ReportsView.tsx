@@ -1,17 +1,45 @@
-/** Generación y descarga de reportes de una auditoría. */
+/** Generación y descarga de reportes de una auditoría.
+ *
+ * La audiencia decide qué contiene el documento, no qué se midió: los tres
+ * salen de la misma auditoría y muestran las mismas puntuaciones.
+ */
 
 import { useCallback, useEffect, useState } from 'react';
 
 import { reports as api } from '../../lib/api';
-import type { ReportEntry, ReportFormat } from '../../lib/types';
+import type { ReportAudience, ReportEntry, ReportFormat } from '../../lib/types';
 import { EmptyState, ErrorState, LoadingState } from './UiStates';
-import { Card, FormError, describeError } from './ui';
+import { Badge, Card, FormError, describeError } from './ui';
 
 const FORMATS: [ReportFormat, string][] = [
   ['pdf', 'PDF'],
   ['html', 'HTML'],
   ['json', 'JSON'],
 ];
+
+const AUDIENCES: { key: ReportAudience; label: string; detail: string }[] = [
+  {
+    key: 'combined',
+    label: 'Completo',
+    detail: 'Todo: explicación para el cliente y detalle técnico con evidencia.',
+  },
+  {
+    key: 'executive',
+    label: 'Ejecutivo',
+    detail: 'Puntuaciones, hallazgos graves en lenguaje claro y recomendaciones. Sin evidencia.',
+  },
+  {
+    key: 'technical',
+    label: 'Técnico',
+    detail: 'Detalle por módulo con evidencia, CWE y OWASP. Sin las paráfrasis para el cliente.',
+  },
+];
+
+const AUDIENCE_LABEL: Record<ReportAudience, string> = {
+  combined: 'Completo',
+  executive: 'Ejecutivo',
+  technical: 'Técnico',
+};
 
 function formatSize(bytes: number | null): string {
   if (bytes === null) return '—';
@@ -26,6 +54,7 @@ export default function ReportsView({ scanId }: { scanId: string }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [audience, setAudience] = useState<ReportAudience>('combined');
 
   const load = useCallback(async () => {
     setState('loading');
@@ -46,7 +75,9 @@ export default function ReportsView({ scanId }: { scanId: string }) {
     setBusy(true);
     setActionError('');
     try {
-      setItems(await api.generate(scanId, ['pdf', 'html', 'json']));
+      await api.generate(scanId, ['pdf', 'html', 'json'], audience);
+      // Se recarga la lista completa: pueden existir otras audiencias ya generadas.
+      setItems(await api.list(scanId));
     } catch (caught) {
       setActionError(describeError(caught));
     } finally {
@@ -54,10 +85,10 @@ export default function ReportsView({ scanId }: { scanId: string }) {
     }
   }
 
-  async function download(format: ReportFormat) {
+  async function download(format: ReportFormat, target: ReportAudience) {
     setActionError('');
     try {
-      await api.download(scanId, format);
+      await api.download(scanId, format, target);
     } catch (caught) {
       setActionError(describeError(caught));
     }
@@ -66,11 +97,17 @@ export default function ReportsView({ scanId }: { scanId: string }) {
   if (state === 'loading') return <LoadingState label="Cargando reportes…" />;
   if (state === 'error') return <ErrorState description={error} onRetry={() => void load()} />;
 
+  const selected = AUDIENCES.find((item) => item.key === audience);
+  const existing = items.some((item) => item.audience === audience);
+  const generated = AUDIENCES.map((item) => item.key).filter((key) =>
+    items.some((item) => item.audience === key),
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="text-sm font-semibold">Reportes</h2>
             <p className="sf-muted text-xs">
               Los tres formatos se generan del mismo modelo de datos, así que no pueden divergir.
@@ -82,9 +119,35 @@ export default function ReportsView({ scanId }: { scanId: string }) {
             disabled={busy}
             onClick={() => void generate()}
           >
-            {busy ? 'Generando…' : items.length > 0 ? 'Regenerar' : 'Generar reporte'}
+            {busy ? 'Generando…' : existing ? 'Regenerar' : 'Generar reporte'}
           </button>
         </div>
+
+        <fieldset className="mt-4">
+          <legend className="sf-muted mb-2 text-xs uppercase tracking-wide">
+            Versión del documento
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {AUDIENCES.map((item) => (
+              <label
+                key={item.key}
+                className={`sf-btn ${audience === item.key ? 'sf-btn-primary' : 'sf-btn-ghost'}`}
+              >
+                <input
+                  type="radio"
+                  name="audience"
+                  className="sr-only"
+                  value={item.key}
+                  checked={audience === item.key}
+                  onChange={() => setAudience(item.key)}
+                />
+                {item.label}
+              </label>
+            ))}
+          </div>
+          {selected ? <p className="sf-muted mt-2 text-xs">{selected.detail}</p> : null}
+        </fieldset>
+
         <FormError>{actionError}</FormError>
       </Card>
 
@@ -94,37 +157,50 @@ export default function ReportsView({ scanId }: { scanId: string }) {
           description="Genere el reporte para poder descargarlo y entregarlo al cliente."
         />
       ) : (
-        <Card className="!px-0 !py-0">
-          <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {FORMATS.map(([format, label]) => {
-              const report = items.find((item) => item.format === format);
-              if (!report) return null;
-              return (
-                <li key={format} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <span className="w-16 font-medium">{label}</span>
-                  <span className="sf-muted text-xs">{formatSize(report.size_bytes)}</span>
-                  <span className="sf-muted text-xs">
-                    {new Date(report.generated_at).toLocaleString()}
-                  </span>
-                  <span className="sf-muted flex-1 truncate font-mono text-xs">
-                    sha256:{(report.checksum_sha256 ?? '').slice(0, 16)}
-                  </span>
-                  <button
-                    type="button"
-                    className="sf-btn sf-btn-ghost"
-                    onClick={() => void download(format)}
-                  >
-                    Descargar
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="sf-muted px-4 py-3 text-xs">
+        <div className="flex flex-col gap-4">
+          {generated.map((key) => (
+            <Card key={key} className="!px-0 !py-0">
+              <div className="flex items-center gap-2 px-4 pt-3">
+                <h3 className="text-sm font-semibold">{AUDIENCE_LABEL[key]}</h3>
+                {key === audience ? <Badge tone="ok">Seleccionado</Badge> : null}
+              </div>
+              <ul className="mt-2 divide-y" style={{ borderColor: 'var(--border)' }}>
+                {FORMATS.map(([format, label]) => {
+                  const report = items.find(
+                    (item) => item.format === format && item.audience === key,
+                  );
+                  if (!report) return null;
+                  return (
+                    <li
+                      key={`${key}-${format}`}
+                      className="flex flex-wrap items-center gap-3 px-4 py-3"
+                    >
+                      <span className="w-16 font-medium">{label}</span>
+                      <span className="sf-muted text-xs">{formatSize(report.size_bytes)}</span>
+                      <span className="sf-muted text-xs">
+                        {new Date(report.generated_at).toLocaleString()}
+                      </span>
+                      <span className="sf-muted flex-1 truncate font-mono text-xs">
+                        sha256:{(report.checksum_sha256 ?? '').slice(0, 16)}
+                      </span>
+                      <button
+                        type="button"
+                        className="sf-btn sf-btn-ghost"
+                        onClick={() => void download(format, key)}
+                      >
+                        Descargar
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
+          ))}
+          <p className="sf-muted px-1 text-xs">
             Cada reporte guarda su suma de verificación y la versión del motor, de modo que un PDF
             entregado pueda reasociarse a los datos exactos que lo originaron.
           </p>
-        </Card>
+        </div>
       )}
     </div>
   );

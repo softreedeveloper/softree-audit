@@ -6,6 +6,7 @@ import datetime as dt
 import json
 
 import pytest
+from softree_audit.models.enums import ReportAudience
 from softree_audit.services.reports.model import (
     METHODOLOGY_DISCLAIMER,
     SCOPE_DISCLAIMER,
@@ -277,3 +278,120 @@ def test_the_pdf_renders_without_css_errors(capsys: pytest.CaptureFixture[str]) 
     assert document.startswith(b"%PDF-")
     problems = [record.getMessage() for record in records if record.levelno >= logging.WARNING]
     assert problems == [], problems
+
+
+# ── Audiencia ──────────────────────────────────────────────────────────────
+
+
+def _model_with_findings() -> ReportModel:
+    return model(
+        sections=[
+            ReportSection(
+                key="security",
+                title="Seguridad",
+                module_status="completed",
+                summary={"alerts_received": 83},
+                findings=[
+                    finding(
+                        rule_id="ZAP-10038",
+                        title="Falta Content Security Policy",
+                        severity="high",
+                        category="security",
+                        source="zap",
+                        evidence="Cabeceras: server: nginx/1.29.1",
+                        cwe="CWE-693",
+                        owasp="A05:2025",
+                        client_explanation="El navegador no recibe instrucciones sobre qué "
+                        "contenido puede cargar.",
+                    ),
+                    finding(severity="low", title="Meta description corta"),
+                ],
+            )
+        ],
+        recommendations=[finding(title="Definir una Content Security Policy", severity="high")],
+    )
+
+
+def test_the_executive_version_omits_the_technical_detail() -> None:
+    html = render_html(_model_with_findings(), ReportAudience.EXECUTIVE)
+
+    assert "Versión ejecutiva" in html
+    assert "Hallazgos destacados" in html
+    # Puntuaciones y recomendaciones sí: son lo que lee dirección.
+    assert "Softree Score" in html
+    assert "Recomendaciones prioritarias" in html
+    # Evidencia, identificadores y resúmenes por módulo, no.
+    assert "server: nginx/1.29.1" not in html
+    assert "CWE-693" not in html
+    assert "Alertas recibidas de ZAP" not in html
+
+
+def test_the_executive_version_highlights_only_the_serious_findings() -> None:
+    html = render_html(_model_with_findings(), ReportAudience.EXECUTIVE)
+
+    assert "Falta Content Security Policy" in html
+    # Un hallazgo de gravedad baja no entra en el documento para dirección.
+    assert "Meta description corta" not in html
+
+
+def test_the_technical_version_keeps_the_evidence_and_drops_the_client_wording() -> None:
+    html = render_html(_model_with_findings(), ReportAudience.TECHNICAL)
+
+    assert "Versión técnica" in html
+    assert "server: nginx/1.29.1" in html
+    assert "CWE-693" in html
+    assert "Alertas recibidas de ZAP" in html
+    # La paráfrasis para el cliente es de la versión ejecutiva.
+    assert "En términos claros" not in html
+
+
+def test_the_combined_version_carries_both_levels() -> None:
+    html = render_html(_model_with_findings(), ReportAudience.COMBINED)
+
+    assert "Versión completa" in html
+    assert "En términos claros" in html
+    assert "server: nginx/1.29.1" in html
+    # Con el detalle completo no hace falta el resumen de hallazgos destacados.
+    assert "Hallazgos destacados" not in html
+
+
+def test_every_audience_reports_the_same_scores() -> None:
+    """La audiencia cambia lo que se muestra, no lo que se midió."""
+    source = _model_with_findings()
+    for audience in ReportAudience:
+        html = render_html(source, audience)
+        assert "87.1" in html
+        assert "Documento confidencial preparado por Softree." in html
+        assert source.scope_disclaimer in html
+
+
+def test_the_executive_version_falls_back_to_the_recommendations() -> None:
+    """Sin hallazgos graves, el documento ejecutivo no se queda vacío."""
+    source = model(
+        sections=[
+            ReportSection(
+                key="seo",
+                title="SEO",
+                module_status="completed",
+                findings=[finding(severity="low", title="Meta description corta")],
+            )
+        ],
+        recommendations=[finding(title="Revisar las meta descriptions", severity="low")],
+    )
+    html = render_html(source, ReportAudience.EXECUTIVE)
+
+    assert "Revisar las meta descriptions" in html
+
+
+def test_the_json_export_is_complete_for_every_audience() -> None:
+    """El JSON es el formato de integración: no se recorta por audiencia."""
+    source = _model_with_findings()
+    executive = json.loads(render_json(source, ReportAudience.EXECUTIVE))
+    technical = json.loads(render_json(source, ReportAudience.TECHNICAL))
+
+    assert executive["audience"] == "executive"
+    assert technical["audience"] == "technical"
+    executive.pop("audience")
+    technical.pop("audience")
+    assert executive == technical
+    assert executive["sections"][0]["findings"][0]["evidence"] == "Cabeceras: server: nginx/1.29.1"

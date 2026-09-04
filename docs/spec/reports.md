@@ -49,6 +49,31 @@ una fuente no la provee, el catálogo de reglas aporta el texto; si tampoco
 existe, el reporte ejecutivo agrupa el hallazgo por categoría sin inventar
 explicación.
 
+### Audiencias
+
+El mismo modelo de datos se compone en tres documentos distintos. La audiencia
+decide qué se muestra, nunca qué se midió: los tres declaran las mismas
+puntuaciones, la misma auditoría y los mismos avisos de alcance.
+
+| Audiencia | Contiene | Omite |
+|-----------|----------|-------|
+| `executive` | Portada, puntuaciones, hallazgos críticos y altos en lenguaje de cliente, recomendaciones, comparación y conclusión | Evidencia, CWE, OWASP, resúmenes técnicos por módulo y hallazgos de gravedad baja |
+| `technical` | Todo el detalle por módulo, con evidencia, CWE, OWASP y estado de cada módulo | Las paráfrasis dirigidas al cliente |
+| `combined` | Ambos niveles. Es el valor por defecto | — |
+
+Si una auditoría no tiene hallazgos críticos ni altos, el documento ejecutivo
+enumera las recomendaciones ya priorizadas, para no entregar un documento sin
+contenido accionable.
+
+El JSON no se recorta por audiencia: es el formato de integración y quitarle
+datos rompería a quien lo consume. Lleva el campo `audience` para saber con qué
+intención se generó.
+
+Cada combinación de formato y audiencia es un archivo propio
+(`softree-audit-<scan>-<audiencia>.<extensión>`) y un registro propio. Se
+descarga con `GET /api/v1/reports/{scan_id}/download?format=pdf&audience=executive`;
+sin `audience` se devuelve el más reciente de ese formato.
+
 ## 4. Branding
 
 - Marca: `SOFTREE` y `SOFTREE AUDIT`.

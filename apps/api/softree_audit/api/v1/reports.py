@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from softree_audit.api.deps import AppSettings, CurrentUser, DbSession, Limiter, client_ip
 from softree_audit.core import rate_limit
-from softree_audit.models.enums import ReportFormat
+from softree_audit.models.enums import ReportAudience, ReportFormat
 from softree_audit.reports.service import MEDIA_TYPES, ReportService
 from softree_audit.schemas.common import ErrorResponse
 from softree_audit.schemas.report import ReportGenerateRequest, ReportRead
@@ -76,10 +76,11 @@ async def download_report(
     service: ServiceDep,
     request: Request,
     report_format: Annotated[ReportFormat, Query(alias="format")] = ReportFormat.PDF,
+    audience: Annotated[ReportAudience | None, Query()] = None,
 ) -> Response:
-    payload, report = await service.read(scan_id, report_format)
+    payload, report = await service.read(scan_id, report_format, audience)
     extension = report.storage_path.rsplit(".", 1)[-1]
-    filename = f"softree-audit-{scan_id}.{extension}"
+    filename = f"softree-audit-{scan_id}-{report.audience.value}.{extension}"
 
     return Response(
         content=payload,
@@ -87,6 +88,7 @@ async def download_report(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Report-Version": report.report_version,
+            "X-Report-Audience": report.audience.value,
             "X-Report-Checksum": report.checksum_sha256 or "",
         },
     )

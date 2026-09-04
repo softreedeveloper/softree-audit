@@ -156,6 +156,29 @@ test('genera y descarga el reporte', async ({ page }) => {
   expect(file.suggestedFilename()).toMatch(/\.pdf$/);
 });
 
+test('genera la versión ejecutiva del PDF', async ({ page }) => {
+  await login(page);
+  await page.goto(scanUrl);
+
+  await page.getByRole('button', { name: 'reporte', exact: true }).click();
+  await page.getByRole('radio', { name: 'Ejecutivo' }).check();
+  await page.getByRole('button', { name: /Generar reporte|Regenerar/ }).click();
+
+  const section = page.locator('section, div').filter({ hasText: 'Ejecutivo' }).last();
+  await expect(section).toBeVisible({ timeout: 60_000 });
+
+  const download = page.waitForEvent('download');
+  await page
+    .getByRole('listitem')
+    .filter({ hasText: 'PDF' })
+    .last()
+    .getByRole('button', { name: 'Descargar' })
+    .click();
+
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/-executive\.pdf$/);
+});
+
 test('compara con la auditoría anterior', async ({ page }) => {
   await login(page);
   await page.goto(siteUrl);

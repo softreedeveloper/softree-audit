@@ -11,14 +11,14 @@ carencias se declaran como tales.
 
 | Comprobación | Comando | Resultado |
 |--------------|---------|-----------|
-| Suite Python completa | `make test` | 725 pruebas, 0 fallos |
+| Suite Python completa | `make test` | 738 pruebas, 0 fallos |
 | Linters y tipos | `make lint` | ruff, ruff format, mypy (125 archivos) y `astro check` + `tsc` sin errores |
 | Esquema OpenAPI | `make openapi` | 37 rutas, 45 operaciones, 72 esquemas |
 | Migraciones al día | `alembic check` | Sin cambios pendientes |
 | Auditoría real de extremo a extremo | `test-target` en la red Docker | 18 páginas, 16 reglas SEO, 83 alertas ZAP normalizadas a 6 findings, score 87.1, PDF de 22 páginas |
 | Cadena de performance contra la API real | `PageSpeedClient` sobre `https://example.com` | Dos estrategias, 8 Google Scores, 6 métricas, caché en Redis acertando en la repetición y un finding PSI-008 por estrategia |
 
-Reparto de pruebas: 542 unitarias, 183 de integración, 182 marcadas `security`
+Reparto de pruebas: 549 unitarias, 189 de integración, 182 marcadas `security`
 (los marcadores se solapan: una prueba de integración puede ser además de
 seguridad). Las E2E son 20 especificaciones de Playwright: 11 de flujo y 9 de
 seguridad.
@@ -56,7 +56,7 @@ seguridad.
 | RF-12 Google Score y Softree Score | Cumplido | `ScoreSystem` distingue ambos; el de Google se persiste sin alterar |
 | RF-13 Histórico y comparación | Cumplido | `GET /sites/{id}/history`, `GET /scans/{id}/comparison` con `NEW`, `FIXED`, `UNCHANGED`, `REGRESSED` |
 | RF-14 PDF, HTML y JSON | Cumplido | `ReportFormat`; un solo `ReportModel` alimenta los tres |
-| RF-14 Branding y doble nivel de lectura | Cumplido | `services/reports/templates/report.html.j2`: resumen ejecutivo y detalle técnico |
+| RF-14 Branding y doble nivel de lectura | Cumplido y verificado en vivo | `services/reports/templates/report.html.j2`. La audiencia compone tres documentos del mismo modelo: sobre una auditoría real de 26 páginas, la versión ejecutiva ocupa 8 páginas, la técnica 33 y la completa 40 (D-067) |
 | RF-15 REST versionada con OpenAPI válido | Cumplido | `docs/api/openapi.json` regenerado; tipos TypeScript derivados de él |
 | RF-16 Logs estructurados por scan | Cumplido | structlog con `scan_id`, `module`, `status`, `duration` y `error` |
 

@@ -2771,6 +2771,7 @@ export interface operations {
         parameters: {
             query?: {
                 format?: components["schemas"]["ReportFormat"];
+                audience?: components["schemas"]["ReportAudience"] | null;
             };
             header?: never;
             path: {

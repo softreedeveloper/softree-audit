@@ -28,6 +28,7 @@
         <dt>Versión de auditoría</dt>
         <dd>Softree Audit {{ model.app_version }} · Motor {{ model.engine_version }} · Reporte {{ model.report_version }}</dd>
       </dl>
+      <p class="audience">{{ audience_label }}</p>
       <p class="confidential">Documento confidencial preparado por Softree.</p>
     </section>
 
@@ -88,7 +89,40 @@
       <p class="disclaimer">{{ model.methodology_disclaimer }}</p>
     </section>
 
+    {# ── Hallazgos destacados (solo versión ejecutiva) ───────────────── #}
+    {% if not technical_detail %}
+    <section class="page">
+      <h2>Hallazgos destacados</h2>
+      {% if highlighted_findings %}
+      <p class="lead">
+        Lo que conviene revisar primero, explicado sin tecnicismos. El detalle
+        técnico de cada punto está en la versión técnica de este reporte.
+      </p>
+      {% for finding in highlighted_findings %}
+      <article class="finding">
+        <h3>
+          <span class="badge sev-{{ finding.severity }}">{{ severities[finding.severity] }}</span>
+          {{ finding.title }}
+        </h3>
+        {% if finding.client_explanation %}
+        <p class="client">{{ finding.client_explanation }}</p>
+        {% else %}
+        <p>{{ finding.description }}</p>
+        {% endif %}
+        {% if finding.impact %}<p><strong>Impacto:</strong> {{ finding.impact }}</p>{% endif %}
+        {% if finding.remediation %}<p><strong>Cómo se corrige:</strong> {{ finding.remediation }}</p>{% endif %}
+        <p class="meta">{{ finding.occurrences }} caso(s)</p>
+      </article>
+      {% endfor %}
+      {% else %}
+      <p class="empty">La auditoría no encontró incidencias abiertas.</p>
+      {% endif %}
+      <p class="disclaimer">{{ model.scope_disclaimer }}</p>
+    </section>
+    {% endif %}
+
     {# ── Secciones ───────────────────────────────────────────────────── #}
+    {% if technical_detail %}
     {% for section in model.sections %}
     <section class="page">
       <h2>{{ section.title }}</h2>
@@ -124,7 +158,7 @@
           {% if finding.rule_id %}<span class="rule">{{ finding.rule_id }}</span>{% endif %}
           {{ finding.title }}
         </h3>
-        {% if finding.client_explanation %}
+        {% if finding.client_explanation and client_language %}
         <p class="client"><strong>En términos claros:</strong> {{ finding.client_explanation }}</p>
         {% endif %}
         <p>{{ finding.description }}</p>
@@ -144,6 +178,7 @@
       {% endif %}
     </section>
     {% endfor %}
+    {% endif %}
 
     {# ── Recomendaciones ─────────────────────────────────────────────── #}
     {% if model.recommendations %}
@@ -222,8 +257,15 @@
       </p>
 
       <h3>Alcance y metodología</h3>
+      {% if not technical_detail %}
+      <p>
+        Se ejecutaron {{ model.modules|length }} módulo(s) de análisis sobre
+        {{ model.pages_crawled }} página(s). El estado de cada uno se detalla en la versión
+        técnica.
+      </p>
+      {% endif %}
       <ul class="modules">
-        {% for module in model.modules %}
+        {% for module in model.modules if technical_detail %}
         <li>
           <strong>{{ modules[module.module] if module.module in modules else module.module }}</strong>:
           {{ statuses.get(module.status, module.status) }}

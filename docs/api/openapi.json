@@ -4800,6 +4800,22 @@
               "$ref": "#/components/schemas/ReportFormat",
               "default": "pdf"
             }
+          },
+          {
+            "in": "query",
+            "name": "audience",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReportAudience"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Audience"
+            }
           }
         ],
         "responses": {

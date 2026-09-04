@@ -20,6 +20,7 @@ import type {
   PerformanceSummary,
   Project,
   ProjectInput,
+  ReportAudience,
   ReportEntry,
   ReportFormat,
   Scan,
@@ -337,16 +338,24 @@ export const dashboard = {
 export const reports = {
   list: (scanId: string): Promise<ReportEntry[]> =>
     request<ReportEntry[]>(`/reports/${scanId}`),
-  generate: (scanId: string, formats: ReportFormat[]): Promise<ReportEntry[]> =>
+  generate: (
+    scanId: string,
+    formats: ReportFormat[],
+    audience: ReportAudience,
+  ): Promise<ReportEntry[]> =>
     request<ReportEntry[]>(`/reports/${scanId}/generate`, {
       method: 'POST',
-      body: { formats },
+      body: { formats, audience },
     }),
-  downloadUrl: (scanId: string, format: ReportFormat): string =>
-    `/api/v1/reports/${scanId}/download?format=${format}`,
+  downloadUrl: (scanId: string, format: ReportFormat, audience: ReportAudience): string =>
+    `/api/v1/reports/${scanId}/download?format=${format}&audience=${audience}`,
   /** Descarga autenticada: la API exige Bearer, así que no vale un enlace directo. */
-  download: async (scanId: string, format: ReportFormat): Promise<void> => {
-    const response = await fetch(reports.downloadUrl(scanId, format), {
+  download: async (
+    scanId: string,
+    format: ReportFormat,
+    audience: ReportAudience,
+  ): Promise<void> => {
+    const response = await fetch(reports.downloadUrl(scanId, format, audience), {
       headers: getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {},
       credentials: 'same-origin',
     });
@@ -357,7 +366,7 @@ export const reports = {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `softree-audit-${scanId}.${format}`;
+    link.download = `softree-audit-${scanId}-${audience}.${format}`;
     document.body.appendChild(link);
     link.click();
     link.remove();

@@ -466,11 +466,13 @@ export interface Comparison {
 
 export type ReportFormat = 'pdf' | 'html' | 'json';
 
+export type ReportAudience = 'executive' | 'technical' | 'combined';
+
 export interface ReportEntry {
   id: string;
   scan_id: string;
   format: ReportFormat;
-  audience: string;
+  audience: ReportAudience;
   report_version: string;
   size_bytes: number | null;
   checksum_sha256: string | null;

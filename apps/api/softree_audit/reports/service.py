@@ -87,8 +87,8 @@ class ReportService:
         generated: list[Report] = []
 
         for report_format in formats:
-            payload = self._render(model, report_format)
-            path = self._write(scan_id, report_format, payload)
+            payload = self._render(model, report_format, audience)
+            path = self._write(scan_id, report_format, audience, payload)
             generated.append(await self._record(scan_id, report_format, audience, path, payload))
 
         await self._session.flush()
@@ -101,19 +101,30 @@ class ReportService:
         return generated
 
     @staticmethod
-    def _render(model: ReportModel, report_format: ReportFormat) -> bytes:
+    def _render(model: ReportModel, report_format: ReportFormat, audience: ReportAudience) -> bytes:
         if report_format is ReportFormat.PDF:
-            return render_pdf(model)
+            return render_pdf(model, audience)
         if report_format is ReportFormat.HTML:
-            return render_html(model).encode("utf-8")
-        return render_json(model)
+            return render_html(model, audience).encode("utf-8")
+        return render_json(model, audience)
 
     def _write(
-        self, scan_id: uuid.UUID, report_format: ReportFormat, payload: bytes
+        self,
+        scan_id: uuid.UUID,
+        report_format: ReportFormat,
+        audience: ReportAudience,
+        payload: bytes,
     ) -> pathlib.Path:
+        """Un archivo por formato y audiencia.
+
+        La audiencia forma parte del nombre: sin ella, generar la versión
+        ejecutiva sobrescribiría el archivo de la técnica, y los dos registros
+        de la base de datos apuntarían al mismo documento.
+        """
         directory = self._root / str(scan_id)
         directory.mkdir(parents=True, exist_ok=True)
-        path = directory / f"softree-audit-{scan_id}.{EXTENSIONS[report_format]}"
+        name = f"softree-audit-{scan_id}-{audience.value}.{EXTENSIONS[report_format]}"
+        path = directory / name
         path.write_bytes(payload)
         return path
 
@@ -166,15 +177,23 @@ class ReportService:
         )
         return list(rows.scalars())
 
-    async def read(self, scan_id: uuid.UUID, report_format: ReportFormat) -> tuple[bytes, Report]:
+    async def read(
+        self,
+        scan_id: uuid.UUID,
+        report_format: ReportFormat,
+        audience: ReportAudience | None = None,
+    ) -> tuple[bytes, Report]:
+        """Lee un reporte ya generado.
+
+        Sin audiencia se devuelve el más reciente de ese formato, que es lo que
+        espera quien solo quiere «el PDF».
+        """
         await self._owned_scan(scan_id)
+        query = sa.select(Report).where(Report.scan_id == scan_id, Report.format == report_format)
+        if audience is not None:
+            query = query.where(Report.audience == audience)
         report = (
-            await self._session.execute(
-                sa.select(Report)
-                .where(Report.scan_id == scan_id, Report.format == report_format)
-                .order_by(Report.generated_at.desc())
-                .limit(1)
-            )
+            await self._session.execute(query.order_by(Report.generated_at.desc()).limit(1))
         ).scalar_one_or_none()
         if report is None:
             raise NotFoundError("El reporte todavía no se ha generado.")

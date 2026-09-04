@@ -14,12 +14,19 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from softree_audit.core.logging import get_logger
+from softree_audit.models.enums import ReportAudience
 from softree_audit.services.reports.model import ReportModel
 
 logger = get_logger(__name__)
 
 TEMPLATES_DIR = pathlib.Path(__file__).parent / "templates"
 ASSETS_DIR = pathlib.Path(__file__).parent / "assets"
+
+AUDIENCES = {
+    ReportAudience.EXECUTIVE: "Versión ejecutiva",
+    ReportAudience.TECHNICAL: "Versión técnica",
+    ReportAudience.COMBINED: "Versión completa",
+}
 
 BANDS = {
     "excelente": "Excelente",
@@ -140,10 +147,26 @@ def _environment() -> Environment:
     )
 
 
-def render_html(model: ReportModel) -> str:
+def render_html(model: ReportModel, audience: ReportAudience = ReportAudience.COMBINED) -> str:
+    """Compone el documento para una audiencia.
+
+    La audiencia decide qué se muestra, no qué se mide: los tres documentos
+    salen del mismo `ReportModel` y describen la misma auditoría.
+
+    - `executive`: puntuaciones, hallazgos destacados en lenguaje de cliente y
+      recomendaciones. Sin evidencia ni detalle por módulo.
+    - `technical`: el detalle completo con evidencia, CWE y OWASP, sin las
+      paráfrasis dirigidas al cliente.
+    - `combined`: todo.
+    """
     template = _environment().get_template("report.html.j2")
     return template.render(
         model=model,
+        audience=audience.value,
+        audience_label=AUDIENCES[audience],
+        client_language=audience in (ReportAudience.EXECUTIVE, ReportAudience.COMBINED),
+        technical_detail=audience in (ReportAudience.TECHNICAL, ReportAudience.COMBINED),
+        highlighted_findings=highlighted_findings(model),
         css=(TEMPLATES_DIR / "report.css").read_text(encoding="utf-8"),
         logo=_logo_data_uri(),
         bands=BANDS,
@@ -156,14 +179,48 @@ def render_html(model: ReportModel) -> str:
     )
 
 
-def render_pdf(model: ReportModel) -> bytes:
+def render_pdf(model: ReportModel, audience: ReportAudience = ReportAudience.COMBINED) -> bytes:
     from weasyprint import HTML
 
-    html = render_html(model)
+    html = render_html(model, audience)
     document: bytes = HTML(string=html).write_pdf()
-    logger.info("report.pdf_rendered", scan_id=model.scan_id, bytes=len(document))
+    logger.info(
+        "report.pdf_rendered",
+        scan_id=model.scan_id,
+        audience=audience.value,
+        bytes=len(document),
+    )
     return document
 
 
-def render_json(model: ReportModel) -> bytes:
-    return json.dumps(model.as_dict(), ensure_ascii=False, indent=2).encode("utf-8")
+def render_json(model: ReportModel, audience: ReportAudience = ReportAudience.COMBINED) -> bytes:
+    """El JSON lleva siempre el modelo completo.
+
+    Es el formato de integración: recortarlo por audiencia rompería a quien lo
+    consume. La audiencia se anota para que el consumidor sepa con qué
+    intención se generó.
+    """
+    data = model.as_dict()
+    data["audience"] = audience.value
+    return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+
+
+# Gravedades que llegan al resumen para dirección.
+HIGHLIGHTED_SEVERITIES = ("critical", "high")
+
+
+def highlighted_findings(model: ReportModel) -> list[Any]:
+    """Hallazgos que el documento ejecutivo enumera, en orden de gravedad.
+
+    Si no hay ninguno crítico ni alto, se recurre a las recomendaciones ya
+    priorizadas para no entregar un documento sin contenido accionable.
+    """
+    urgent = [
+        finding
+        for section in model.sections
+        for finding in section.findings
+        if finding.severity in HIGHLIGHTED_SEVERITIES
+    ]
+    if urgent:
+        return sorted(urgent, key=lambda item: HIGHLIGHTED_SEVERITIES.index(item.severity))
+    return list(model.recommendations)

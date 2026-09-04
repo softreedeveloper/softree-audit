@@ -275,3 +275,70 @@ async def test_report_generation_is_rate_limited(
 
     blocked = await auth_client.post(f"{REPORTS}/{scan.id}/generate", json={"formats": ["json"]})
     assert blocked.status_code == 429
+
+
+# ── Audiencia ──────────────────────────────────────────────────────────────
+
+
+async def test_each_audience_produces_its_own_pdf(
+    auth_client: AsyncClient, user: User, app_context: tuple[object, AsyncSession]
+) -> None:
+    """La versión ejecutiva y la técnica son dos archivos, no uno sobrescrito."""
+    _, session = app_context
+    scan = await _scan(session, user)
+
+    executive = await auth_client.post(
+        f"{REPORTS}/{scan.id}/generate", json={"formats": ["pdf"], "audience": "executive"}
+    )
+    technical = await auth_client.post(
+        f"{REPORTS}/{scan.id}/generate", json={"formats": ["pdf"], "audience": "technical"}
+    )
+    assert executive.status_code == 201
+    assert technical.status_code == 201
+    assert executive.json()[0]["id"] != technical.json()[0]["id"]
+
+    reports = (await auth_client.get(f"{REPORTS}/{scan.id}")).json()
+    paths = {report["audience"] for report in reports}
+    assert paths == {"executive", "technical"}
+
+    first = await auth_client.get(f"{REPORTS}/{scan.id}/download?format=pdf&audience=executive")
+    second = await auth_client.get(f"{REPORTS}/{scan.id}/download?format=pdf&audience=technical")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.headers["x-report-audience"] == "executive"
+    assert second.headers["x-report-audience"] == "technical"
+    assert "executive" in first.headers["content-disposition"]
+    # Dos documentos distintos: si compartieran archivo, serían idénticos.
+    assert first.content != second.content
+    assert first.content.startswith(b"%PDF-")
+    assert second.content.startswith(b"%PDF-")
+
+
+async def test_downloading_without_audience_returns_the_most_recent(
+    auth_client: AsyncClient, user: User, app_context: tuple[object, AsyncSession]
+) -> None:
+    """Quien solo quiere «el PDF» no tiene que saber de audiencias."""
+    _, session = app_context
+    scan = await _scan(session, user)
+
+    await auth_client.post(
+        f"{REPORTS}/{scan.id}/generate", json={"formats": ["pdf"], "audience": "executive"}
+    )
+    response = await auth_client.get(f"{REPORTS}/{scan.id}/download?format=pdf")
+
+    assert response.status_code == 200
+    assert response.headers["x-report-audience"] == "executive"
+
+
+async def test_an_audience_that_was_not_generated_returns_404(
+    auth_client: AsyncClient, user: User, app_context: tuple[object, AsyncSession]
+) -> None:
+    _, session = app_context
+    scan = await _scan(session, user)
+    await auth_client.post(
+        f"{REPORTS}/{scan.id}/generate", json={"formats": ["pdf"], "audience": "executive"}
+    )
+
+    response = await auth_client.get(f"{REPORTS}/{scan.id}/download?format=pdf&audience=technical")
+    assert response.status_code == 404
