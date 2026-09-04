@@ -82,6 +82,10 @@ async def instance_settings(user: CurrentUser, settings: AppSettings) -> Instanc
                     else "Defina GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET para poder conectar."
                 ),
                 variables=["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI"],
+                # Un URI que no coincida con el registrado en Google produce
+                # `redirect_uri_mismatch` antes de mostrar el consentimiento, y
+                # el mensaje de Google no dice cuál esperaba.
+                callback_url=settings.google_redirect_uri,
             ),
         ],
         scope_defaults=ScopeDefaults(

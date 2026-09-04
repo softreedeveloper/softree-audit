@@ -102,6 +102,17 @@ export default function SettingsView() {
                 <p className="sf-muted mt-1 font-mono text-xs">
                   {integration.variables.join(' · ')}
                 </p>
+                {integration.callback_url ? (
+                  <p className="mt-2 text-xs">
+                    <span className="sf-muted">URI de redirección que se envía a Google: </span>
+                    <code className="font-mono break-all">{integration.callback_url}</code>
+                    <span className="sf-muted">
+                      {' '}
+                      — debe estar registrado igual en Google Cloud Console, si no la conexión
+                      falla con <code className="font-mono">redirect_uri_mismatch</code>.
+                    </span>
+                  </p>
+                ) : null}
               </div>
               <Badge tone={integration.configured ? 'ok' : 'warn'}>
                 {integration.configured ? 'Configurada' : 'Sin configurar'}

@@ -67,6 +67,10 @@ async def test_integrations_expose_state_not_values(
         # Solo los nombres de las variables, para saber qué definir.
         assert all(name.isupper() for name in integration["variables"])
 
+    # El URI de redirección no es un secreto y hace falta para configurar Google.
+    assert integrations["search_console"]["callback_url"] == settings.google_redirect_uri
+    assert integrations["zap"]["callback_url"] is None
+
     assert integrations["pagespeed"]["configured"] is bool(settings.pagespeed_api_key)
     assert integrations["search_console"]["configured"] is bool(
         settings.google_client_id and settings.google_client_secret

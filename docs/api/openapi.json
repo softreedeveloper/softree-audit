@@ -899,6 +899,18 @@
       "IntegrationStatus": {
         "additionalProperties": false,
         "properties": {
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URI de redirección que la aplicación envía a Google. No es un secreto: hay que registrarlo igual en Google Cloud Console.",
+            "title": "Callback Url"
+          },
           "configured": {
             "description": "Si hay credenciales. Nunca se devuelve su valor.",
             "title": "Configured",

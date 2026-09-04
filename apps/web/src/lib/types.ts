@@ -493,6 +493,7 @@ export interface IntegrationStatus {
   configured: boolean;
   detail: string;
   variables: string[];
+  callback_url: string | null;
 }
 
 export interface ScopeDefaults {

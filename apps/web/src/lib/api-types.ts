@@ -984,6 +984,11 @@ export interface components {
         /** IntegrationStatus */
         IntegrationStatus: {
             /**
+             * Callback Url
+             * @description URI de redirección que la aplicación envía a Google. No es un secreto: hay que registrarlo igual en Google Cloud Console.
+             */
+            callback_url?: string | null;
+            /**
              * Configured
              * @description Si hay credenciales. Nunca se devuelve su valor.
              */

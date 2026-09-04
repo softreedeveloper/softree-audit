@@ -23,6 +23,13 @@ class IntegrationStatus(ApiModel):
     configured: bool = Field(description="Si hay credenciales. Nunca se devuelve su valor.")
     detail: str
     variables: list[str]
+    callback_url: str | None = Field(
+        default=None,
+        description=(
+            "URI de redirección que la aplicación envía a Google. No es un secreto: "
+            "hay que registrarlo igual en Google Cloud Console."
+        ),
+    )
 
 
 class ScopeDefaults(ApiModel):
