@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LoginForm from '../components/react/LoginForm.tsx';
+import ThemeToggle from '../components/react/ThemeToggle.tsx';
+---
+
+<BaseLayout title="Iniciar sesión">
+  <div class="flex min-h-screen items-center justify-center px-4 py-10">
+    <div class="w-full max-w-sm">
+      <div class="mb-6 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="/brand/softree-isotipo.png" alt="Softree" class="size-10" />
+          <div>
+            <p class="text-sm font-semibold leading-tight">SOFTREE</p>
+            <p class="sf-muted text-[11px] tracking-wide">AUDIT</p>
+          </div>
+        </div>
+        <ThemeToggle client:load />
+      </div>
+
+      <div class="sf-card px-5 py-6">
+        <h1 class="mb-1 text-lg font-semibold">Acceso interno</h1>
+        <p class="sf-muted mb-5 text-sm">
+          Plataforma de auditoría de seguridad, SEO y rendimiento de Softree.
+        </p>
+        <LoginForm client:load />
+      </div>
+
+      <p class="sf-muted mt-6 text-center text-xs">
+        Auditar únicamente sitios propios, entregados por Softree o con autorización explícita del
+        cliente.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

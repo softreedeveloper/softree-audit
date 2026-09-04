@@ -1,0 +1,142 @@
+name: softree-audit
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-softree}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-softree_local_password}
+      POSTGRES_DB: ${POSTGRES_DB:-softree_audit}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-softree} -d ${POSTGRES_DB:-softree_audit}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://softree:softree_local_password@postgres:5432/softree_audit}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    volumes:
+      - ./apps/api:/app
+      - ./tests:/app/tests
+      - reports_data:/data/reports
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      - uvicorn
+      - softree_audit.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    restart: unless-stopped
+    environment:
+      # El servidor de desarrollo de Astro hace proxy de /api hacia la API,
+      # de modo que el navegador ve un solo origen (ADR-008).
+      API_PROXY_TARGET: http://api:8000
+      PUBLIC_API_BASE_URL: /api/v1
+    volumes:
+      - ./apps/web:/app
+      - web_node_modules:/app/node_modules
+    ports:
+      - "127.0.0.1:4321:4321"
+    depends_on:
+      - api
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+  # ── Perfil scanner: se activa con --profile scanner (Slice 5) ────────────
+  # No publica puertos al host: solo es alcanzable en la red interna.
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    profiles: ["scanner"]
+    restart: unless-stopped
+    command:
+      - zap.sh
+      - -daemon
+      - -host
+      - "0.0.0.0"
+      - -port
+      - "8080"
+      - -config
+      - api.addrs.addr.name=.*
+      - -config
+      - api.addrs.addr.regex=true
+      - -config
+      - api.key=${ZAP_API_KEY:?ZAP_API_KEY es obligatorio con el perfil scanner}
+    expose:
+      - "8080"
+
+  # ── Perfil testing: sitio con defectos controlados (Slice 3+) ────────────
+  test-target:
+    build:
+      context: ./test-target
+      dockerfile: Dockerfile
+    profiles: ["testing"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:80"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://softree:softree_local_password@postgres:5432/softree_audit}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    volumes:
+      - ./apps/api:/app
+      - reports_data:/data/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["arq", "softree_audit.worker.WorkerSettings"]
+
+volumes:
+  postgres_data:
+  reports_data:
+  web_node_modules:

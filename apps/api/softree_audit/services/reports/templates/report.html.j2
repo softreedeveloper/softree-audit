@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Auditoría {{ model.site_name }} · SOFTREE AUDIT</title>
+    {# El CSS es un archivo propio, no entrada del usuario: se inserta sin
+       escapar. Con autoescape activo, las comillas de `font-family` se
+       convertirían en entidades y WeasyPrint descartaría esas reglas. #}
+    <style>{{ css|safe }}</style>
+  </head>
+  <body>
+    {# ── Portada ─────────────────────────────────────────────────────── #}
+    <section class="cover">
+      {% if logo %}<img class="logo" src="{{ logo }}" alt="Softree" />{% endif %}
+      <p class="brand">SOFTREE</p>
+      <p class="brand-sub">AUDIT</p>
+      <h1>Auditoría técnica de seguridad, SEO y rendimiento</h1>
+      <dl class="cover-meta">
+        <dt>Cliente</dt><dd>{{ model.client_name or model.project_name }}</dd>
+        <dt>Sitio</dt><dd>{{ model.site_name }}</dd>
+        <dt>Dominio</dt><dd>{{ model.site_base_url }}</dd>
+        <dt>Periodo analizado</dt>
+        <dd>
+          {% if model.period_start %}{{ model.period_start.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}
+          {% if model.period_end %} – {{ model.period_end.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+        </dd>
+        <dt>Emitido</dt><dd>{{ model.generated_at.strftime('%d/%m/%Y') }}</dd>
+        <dt>Versión de auditoría</dt>
+        <dd>Softree Audit {{ model.app_version }} · Motor {{ model.engine_version }} · Reporte {{ model.report_version }}</dd>
+      </dl>
+      <p class="confidential">Documento confidencial preparado por Softree.</p>
+    </section>
+
+    {# ── Resumen ejecutivo ───────────────────────────────────────────── #}
+    <section class="page">
+      <h2>Resumen ejecutivo</h2>
+      <div class="score-row">
+        <div class="score-main band-{{ model.band or 'sin-dato' }}">
+          <span class="score-value">{{ '%.1f'|format(model.softree_overall) if model.softree_overall is not none else '—' }}</span>
+          <span class="score-label">Softree Score</span>
+          {% if model.band %}<span class="score-band">{{ bands[model.band] }}</span>{% endif %}
+        </div>
+        <table class="score-table">
+          <tbody>
+            {% for key, value in model.softree_categories.items() %}
+            <tr>
+              <th>{{ categories[key] }}{% if model.applied_weights.get(key) %} <span class="weight">({{ (model.applied_weights[key] * 100)|round|int }} %)</span>{% endif %}</th>
+              <td>{{ '%.1f'|format(value) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="lead">
+        {%- if model.total_findings == 0 -%}
+          La auditoría no encontró incidencias abiertas en los módulos que se ejecutaron.
+        {%- else -%}
+          {%- set urgent = model.findings_by_severity.critical + model.findings_by_severity.high -%}
+          La auditoría identificó {{ model.total_findings }} incidencia(s) abierta(s)
+          {%- if urgent %}, de las cuales {{ urgent }} requieren atención prioritaria.
+          {%- else %}, ninguna de gravedad alta o crítica.
+          {%- endif -%}
+        {%- endif %}
+        Se rastrearon {{ model.pages_crawled }} página(s) del sitio.
+      </p>
+
+      <table class="severity">
+        <thead>
+          <tr>{% for key in ['critical','high','medium','low','info'] %}<th>{{ severities[key] }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          <tr>{% for key in ['critical','high','medium','low','info'] %}<td class="sev-{{ key }}">{{ model.findings_by_severity.get(key, 0) }}</td>{% endfor %}</tr>
+        </tbody>
+      </table>
+
+      {% if model.google_scores %}
+      <h3>Google Lighthouse</h3>
+      <table class="score-table wide">
+        <tbody>
+          {% for key, value in model.google_scores.items() %}
+          <tr><th>{{ categories.get(key, key) }}</th><td>{{ value|round|int }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      <p class="disclaimer">{{ model.methodology_disclaimer }}</p>
+    </section>
+
+    {# ── Secciones ───────────────────────────────────────────────────── #}
+    {% for section in model.sections %}
+    <section class="page">
+      <h2>{{ section.title }}</h2>
+
+      {% if section.note %}<p class="note">{{ section.note }}</p>{% endif %}
+
+      {% if section.key == 'security' %}
+      <p class="lead">{{ model.scope_disclaimer }}</p>
+      {% endif %}
+
+      {% if section.summary %}
+      <table class="summary">
+        <tbody>
+          {% for key, value in section.summary.items() %}
+          {% if value is mapping %}
+          <tr class="group"><th colspan="2">{{ summary_label(key) }}</th></tr>
+          {% for subkey, subvalue in value.items() %}
+          <tr><th class="sub">{{ summary_label(subkey) }}</th><td>{{ render_value(subvalue) }}</td></tr>
+          {% endfor %}
+          {% else %}
+          <tr><th>{{ summary_label(key) }}</th><td>{{ render_value(value) }}</td></tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if section.findings %}
+      {% for finding in section.findings %}
+      <article class="finding">
+        <h3>
+          <span class="badge sev-{{ finding.severity }}">{{ severities[finding.severity] }}</span>
+          {% if finding.rule_id %}<span class="rule">{{ finding.rule_id }}</span>{% endif %}
+          {{ finding.title }}
+        </h3>
+        {% if finding.client_explanation %}
+        <p class="client"><strong>En términos claros:</strong> {{ finding.client_explanation }}</p>
+        {% endif %}
+        <p>{{ finding.description }}</p>
+        {% if finding.impact %}<p><strong>Impacto:</strong> {{ finding.impact }}</p>{% endif %}
+        {% if finding.remediation %}<p><strong>Cómo se corrige:</strong> {{ finding.remediation }}</p>{% endif %}
+        <p class="meta">
+          {% if finding.url %}{{ finding.url }} · {% endif %}
+          {{ finding.occurrences }} caso(s) · confianza {{ finding.confidence }}
+          {% if finding.cwe %} · {{ finding.cwe }}{% endif %}
+          {% if finding.owasp %} · {{ finding.owasp }}{% endif %}
+        </p>
+        {% if finding.evidence %}<pre class="evidence">{{ finding.evidence }}</pre>{% endif %}
+      </article>
+      {% endfor %}
+      {% elif not section.note %}
+      <p class="empty">Sin incidencias en esta sección.</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+
+    {# ── Recomendaciones ─────────────────────────────────────────────── #}
+    {% if model.recommendations %}
+    <section class="page">
+      <h2>Recomendaciones prioritarias</h2>
+      <p class="lead">Por dónde empezar, ordenado por gravedad y alcance.</p>
+      <ol class="recommendations">
+        {% for finding in model.recommendations %}
+        <li>
+          <span class="badge sev-{{ finding.severity }}">{{ severities[finding.severity] }}</span>
+          <strong>{{ finding.title }}</strong>
+          {% if finding.remediation %}<br />{{ finding.remediation }}{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+
+    {# ── Comparación ─────────────────────────────────────────────────── #}
+    {% if model.comparison %}
+    <section class="page">
+      <h2>Comparación con la auditoría anterior</h2>
+      <p class="lead">
+        Auditoría anterior:
+        {% if model.comparison.previous_finished_at %}
+          {{ model.comparison.previous_finished_at.strftime('%d/%m/%Y %H:%M') }}
+        {% else %}sin fecha de fin{% endif %}.
+      </p>
+      <table class="summary">
+        <tbody>
+          <tr><th>Nuevos</th><td>{{ model.comparison.counts.new }}</td></tr>
+          <tr><th>Corregidos</th><td>{{ model.comparison.counts.fixed }}</td></tr>
+          <tr><th>Sin cambios</th><td>{{ model.comparison.counts.unchanged }}</td></tr>
+          <tr><th>Empeoraron</th><td>{{ model.comparison.counts.regressed }}</td></tr>
+        </tbody>
+      </table>
+
+      {% if model.comparison.metrics %}
+      <table class="summary wide">
+        <thead><tr><th>Métrica</th><th>Antes</th><th>Ahora</th></tr></thead>
+        <tbody>
+          {% for metric in model.comparison.metrics %}
+          <tr class="dir-{{ metric.direction }}">
+            <th>{{ metric.label }}</th>
+            <td>{{ render_value(metric.previous) }}</td>
+            <td>{{ render_value(metric.current) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if model.comparison.sources_only_in_previous %}
+      <p class="note">
+        No se comparan {{ model.comparison.sources_only_in_previous|join(', ') }}: esos módulos no
+        se ejecutaron en esta auditoría, así que sus hallazgos no cuentan como corregidos.
+      </p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {# ── Conclusión ──────────────────────────────────────────────────── #}
+    <section class="page">
+      <h2>Conclusión</h2>
+      <p class="lead">
+        {% if model.softree_overall is not none %}
+          El sitio obtiene un Softree Score de {{ '%.1f'|format(model.softree_overall) }} sobre 100
+          ({{ bands.get(model.band, '—')|lower }}).
+        {% endif %}
+        {% if model.findings_by_severity.critical or model.findings_by_severity.high %}
+          Recomendamos atender primero las incidencias de gravedad alta y crítica listadas en el
+          apartado de recomendaciones.
+        {% else %}
+          No se detectaron incidencias de gravedad alta ni crítica en los módulos ejecutados.
+        {% endif %}
+      </p>
+
+      <h3>Alcance y metodología</h3>
+      <ul class="modules">
+        {% for module in model.modules %}
+        <li>
+          <strong>{{ modules[module.module] if module.module in modules else module.module }}</strong>:
+          {{ statuses.get(module.status, module.status) }}
+          {% if module.error %} — {{ module.error }}{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="disclaimer">{{ model.scope_disclaimer }}</p>
+      <p class="disclaimer">{{ model.methodology_disclaimer }}</p>
+      <p class="meta">
+        Auditoría {{ model.scan_id }} · Softree Audit {{ model.app_version }} ·
+        Motor {{ model.engine_version }} · Reporte {{ model.report_version }}
+      </p>
+    </section>
+  </body>
+</html>

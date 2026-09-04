@@ -1,0 +1,5 @@
+Migraciones de Softree Audit.
+
+Una sola cabeza. Generar con `make revision m="mensaje"` y revisar siempre el
+archivo generado antes de aplicarlo: Alembic no detecta renombrados ni cambios
+de semántica.

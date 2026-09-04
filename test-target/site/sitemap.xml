@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sitemap deliberadamente incompleto: no lista todas las páginas. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>http://test-target/</loc></url>
+  <url><loc>http://test-target/duplicado-a.html</loc></url>
+  <url><loc>http://test-target/final.html</loc></url>
+</urlset>

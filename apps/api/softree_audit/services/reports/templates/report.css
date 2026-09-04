@@ -1,0 +1,179 @@
+/* Estilos del reporte. WeasyPrint no ejecuta JavaScript: todo es CSS. */
+
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm 16mm;
+  @bottom-center {
+    content: "SOFTREE AUDIT · Documento confidencial · página " counter(page) " de " counter(pages);
+    font-size: 8pt;
+    color: #6b7280;
+  }
+}
+
+@page :first {
+  @bottom-center { content: ""; }
+}
+
+:root {
+  --brand: #3e7d2e;
+  --brand-dark: #24491d;
+  --ink: #16201a;
+  --muted: #5c6b60;
+  --border: #d9ded8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "DejaVu Sans", sans-serif;
+  font-size: 10pt;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0;
+}
+
+h1 { font-size: 20pt; margin: 12mm 0 8mm; color: var(--brand-dark); }
+h2 {
+  font-size: 15pt;
+  color: var(--brand-dark);
+  border-bottom: 2px solid var(--brand);
+  padding-bottom: 2mm;
+  margin: 0 0 5mm;
+}
+h3 { font-size: 11.5pt; margin: 6mm 0 2mm; }
+
+p { margin: 0 0 3mm; }
+
+.page { page-break-before: always; }
+
+/* ── Portada ─────────────────────────────────────────────────────────── */
+
+.cover { text-align: center; padding-top: 30mm; }
+.cover .logo { width: 34mm; height: auto; }
+.brand { font-size: 20pt; font-weight: bold; letter-spacing: 4pt; margin: 4mm 0 0; }
+.brand-sub { font-size: 11pt; letter-spacing: 6pt; color: var(--muted); margin: 0; }
+
+.cover-meta {
+  display: grid;
+  grid-template-columns: 45mm auto;
+  gap: 1.5mm 5mm;
+  text-align: left;
+  max-width: 130mm;
+  margin: 10mm auto 0;
+  font-size: 10pt;
+}
+.cover-meta dt { color: var(--muted); }
+.cover-meta dd { margin: 0; font-weight: 600; }
+
+.confidential { margin-top: 16mm; color: var(--muted); font-size: 9pt; }
+
+/* ── Resumen ─────────────────────────────────────────────────────────── */
+
+.score-row { display: flex; gap: 8mm; align-items: center; margin-bottom: 6mm; }
+
+.score-main {
+  border: 2px solid var(--brand);
+  border-radius: 4mm;
+  padding: 5mm 8mm;
+  text-align: center;
+  min-width: 45mm;
+}
+.score-value { display: block; font-size: 30pt; font-weight: bold; line-height: 1; }
+.score-label { display: block; font-size: 8pt; color: var(--muted); text-transform: uppercase; letter-spacing: 1pt; }
+.score-band { display: block; margin-top: 1mm; font-size: 10pt; font-weight: 600; }
+
+.band-excelente, .band-bueno { border-color: var(--brand); color: var(--brand-dark); }
+.band-mejorable { border-color: #d97706; color: #92400e; }
+.band-deficiente, .band-critico { border-color: #dc2626; color: #991b1b; }
+
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; }
+.score-table th, .score-table td, .summary th, .summary td {
+  border-bottom: 1px solid var(--border);
+  padding: 1.5mm 2mm;
+  text-align: left;
+}
+.score-table td, .summary td { text-align: right; font-weight: 600; }
+.score-table th, .summary th { color: var(--muted); font-weight: normal; }
+.summary.wide td { text-align: right; }
+.summary .group th { font-weight: 600; color: var(--ink); padding-top: 3mm; }
+.summary .sub { padding-left: 5mm; }
+.weight { color: var(--muted); font-weight: normal; }
+
+.severity { margin: 4mm 0 6mm; text-align: center; }
+.severity th {
+  font-size: 8pt;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 1mm;
+  border-bottom: 1px solid var(--border);
+}
+.severity td { font-size: 15pt; font-weight: bold; padding: 2mm; }
+
+.sev-critical { color: #991b1b; }
+.sev-high { color: #dc2626; }
+.sev-medium { color: #b45309; }
+.sev-low { color: var(--brand-dark); }
+.sev-info { color: var(--muted); }
+
+.dir-mejora td { color: var(--brand-dark); }
+.dir-empeora td { color: #991b1b; }
+
+.lead { font-size: 10.5pt; }
+.disclaimer {
+  font-size: 8.5pt;
+  color: var(--muted);
+  border-left: 2px solid var(--border);
+  padding-left: 3mm;
+  margin-top: 4mm;
+}
+.note {
+  font-size: 9pt;
+  background: #fdf6e7;
+  border-left: 3px solid #d97706;
+  padding: 2mm 3mm;
+  margin-bottom: 4mm;
+}
+.empty { color: var(--muted); font-style: italic; }
+
+/* ── Hallazgos ───────────────────────────────────────────────────────── */
+
+.finding {
+  border: 1px solid var(--border);
+  border-radius: 2mm;
+  padding: 3mm 4mm;
+  margin-bottom: 4mm;
+  page-break-inside: avoid;
+}
+.finding h3 { margin: 0 0 2mm; font-size: 10.5pt; }
+
+.badge {
+  display: inline-block;
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5pt;
+  border: 1px solid currentColor;
+  border-radius: 3mm;
+  padding: 0.3mm 2mm;
+  margin-right: 2mm;
+}
+.rule { font-family: "DejaVu Sans Mono", monospace; font-size: 9pt; color: var(--muted); }
+
+.client {
+  background: #f3f7f1;
+  border-left: 3px solid var(--brand);
+  padding: 2mm 3mm;
+  font-size: 9.5pt;
+}
+.meta { font-size: 8.5pt; color: var(--muted); }
+.evidence {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 8pt;
+  background: #f6f7f6;
+  padding: 2mm;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 2mm 0 0;
+}
+
+.recommendations li { margin-bottom: 3mm; page-break-inside: avoid; }
+.modules { font-size: 9.5pt; }
