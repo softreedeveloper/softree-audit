@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 import pytest
 import respx
+import sqlalchemy as sa
 from httpx import AsyncClient
 from softree_audit.core.crypto import SecretBox
 from softree_audit.models import (
@@ -57,6 +58,27 @@ async def _connect(
     session.add(connection)
     await session.commit()
     return connection
+
+
+def _configure_google(app: object, settings: object) -> object:
+    """Configura credenciales de Google solo para la prueba en curso.
+
+    Devuelve la configuración anterior, que la prueba debe restaurar.
+    """
+    from softree_audit.core.config import Settings
+
+    original = app.state.settings  # type: ignore[attr-defined]
+    app.state.settings = Settings(  # type: ignore[attr-defined]
+        _env_file=None,
+        app_env="development",
+        secret_key=settings.secret_key,  # type: ignore[attr-defined]
+        database_url=settings.database_url,  # type: ignore[attr-defined]
+        redis_url=settings.redis_url,  # type: ignore[attr-defined]
+        ssrf_allow_private_networks=False,
+        google_client_id="cliente.apps.googleusercontent.com",
+        google_client_secret="secreto",
+    )
+    return original
 
 
 # ── Estado ─────────────────────────────────────────────────────────────────
@@ -154,20 +176,126 @@ async def test_connect_generates_a_single_use_state(
 
 
 @pytest.mark.security
-async def test_callback_with_an_unknown_state_is_rejected(auth_client: AsyncClient) -> None:
+async def test_callback_with_an_unknown_state_is_rejected(client: AsyncClient) -> None:
     """Un `state` inventado no debe poder crear una conexión."""
-    response = await auth_client.get(f"{CALLBACK}?code=abc&state=inventado", follow_redirects=False)
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == "invalid_oauth_state"
+    response = await client.get(f"{CALLBACK}?code=abc&state=inventado", follow_redirects=False)
+    assert response.status_code == 303
+    assert "google=error" in response.headers["location"]
+    assert "reason=invalid_state" in response.headers["location"]
 
 
-async def test_callback_with_an_error_redirects_to_the_interface(
-    auth_client: AsyncClient,
-) -> None:
-    response = await auth_client.get(f"{CALLBACK}?error=access_denied", follow_redirects=False)
+async def test_callback_with_an_error_redirects_to_the_interface(client: AsyncClient) -> None:
+    response = await client.get(f"{CALLBACK}?error=access_denied", follow_redirects=False)
     assert response.status_code == 303
     assert "google=error" in response.headers["location"]
     assert "access_denied" in response.headers["location"]
+
+
+@respx.mock
+@pytest.mark.security
+async def test_callback_completes_the_connection_without_authorization_header(
+    auth_client: AsyncClient, app_context: tuple[object, AsyncSession], settings: object
+) -> None:
+    """Google devuelve al navegador sin cabecera `Authorization`.
+
+    Es una navegación de primer nivel: no lleva el token de acceso, que vive en
+    memoria del cliente, y tampoco la cookie de refresco, que es
+    `SameSite=Strict` y está limitada a `/api/v1/auth`. Si el callback exigiera
+    sesión, el flujo de OAuth sería imposible de completar desde un navegador.
+    """
+    app, session = app_context
+    project = await _project(auth_client, "Proyecto callback")
+    original = _configure_google(app, settings)
+
+    try:
+        response = await auth_client.post(CONNECT, json={"project_id": project})
+        assert response.status_code == 200
+        state = response.json()["state"]
+
+        respx.post(TOKEN_ENDPOINT).mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "access_token": "ya29.callback",
+                    "expires_in": 3599,
+                    "refresh_token": "1//04callback",
+                    "scope": "https://www.googleapis.com/auth/webmasters.readonly",
+                },
+            )
+        )
+        respx.get(USERINFO).mock(
+            return_value=httpx.Response(200, json={"email": "cuenta@softree.mx"})
+        )
+
+        # Se retira la cabecera: así es como llega el navegador.
+        del auth_client.headers["Authorization"]
+        callback = await auth_client.get(
+            f"{CALLBACK}?code=codigo-de-google&state={state}", follow_redirects=False
+        )
+    finally:
+        app.state.settings = original  # type: ignore[attr-defined]
+
+    assert callback.status_code == 303
+    location = callback.headers["location"]
+    assert "google=connected" in location
+    assert project in location
+
+    connection = await session.scalar(
+        sa.select(SearchConsoleConnection).where(
+            SearchConsoleConnection.project_id == uuid.UUID(project)
+        )
+    )
+    assert connection is not None
+    assert connection.status is ConnectionStatus.CONNECTED
+    assert connection.google_account_email == "cuenta@softree.mx"
+    # El refresh token se guarda cifrado, nunca en claro.
+    assert b"1//04callback" not in connection.refresh_token_encrypted
+    assert (
+        SecretBox(settings.secret_key).decrypt(  # type: ignore[attr-defined]
+            connection.refresh_token_encrypted
+        )
+        == "1//04callback"
+    )
+
+
+@pytest.mark.security
+async def test_a_state_can_only_be_used_once(
+    auth_client: AsyncClient, app_context: tuple[object, AsyncSession], settings: object
+) -> None:
+    """El segundo intento con el mismo `state` no puede volver a canjearse."""
+    app, _ = app_context
+    project = await _project(auth_client, "Proyecto state")
+    original = _configure_google(app, settings)
+
+    try:
+        state = (await auth_client.post(CONNECT, json={"project_id": project})).json()["state"]
+        del auth_client.headers["Authorization"]
+
+        with respx.mock:
+            respx.post(TOKEN_ENDPOINT).mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "access_token": "ya29.uno",
+                        "expires_in": 3599,
+                        "refresh_token": "1//04uno",
+                    },
+                )
+            )
+            respx.get(USERINFO).mock(
+                return_value=httpx.Response(200, json={"email": "cuenta@softree.mx"})
+            )
+            first = await auth_client.get(
+                f"{CALLBACK}?code=uno&state={state}", follow_redirects=False
+            )
+
+        second = await auth_client.get(f"{CALLBACK}?code=dos&state={state}", follow_redirects=False)
+    finally:
+        app.state.settings = original  # type: ignore[attr-defined]
+
+    assert "google=connected" in first.headers["location"]
+    assert second.status_code == 303
+    assert "reason=invalid_state" in second.headers["location"]
 
 
 # ── Propiedades y desconexión ──────────────────────────────────────────────

@@ -15,6 +15,7 @@ import pathlib
 import subprocess
 import sys
 from collections.abc import AsyncIterator, Iterator
+from unittest import mock
 
 import pytest
 import pytest_asyncio
@@ -86,13 +87,26 @@ def _database_url() -> str:
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     url = _database_url()
+    redis_url = os.environ.get("TEST_REDIS_URL", "redis://redis:6379/15")
+
+    # El entorno del contenedor se vacía mientras se construye la configuración.
+    # No basta con `_env_file=None`: pydantic-settings sigue leyendo las
+    # variables del proceso, y entonces una credencial presente en el `.env` del
+    # desarrollador cambiaría el resultado de las pruebas. Ocurrió con
+    # GOOGLE_CLIENT_ID: al configurarla, una prueba que esperaba «integración no
+    # configurada» empezó a ver la integración configurada.
+    with mock.patch.dict(os.environ, {}, clear=True):
+        return _build_settings(url, redis_url)
+
+
+def _build_settings(url: str, redis_url: str) -> Settings:
     return Settings(
         # Aislado del .env local: la configuración de la prueba es explícita.
         _env_file=None,
         app_env="development",
         secret_key="clave-de-integracion-suficientemente-larga-0123",
         database_url=url,
-        redis_url=os.environ.get("TEST_REDIS_URL", "redis://redis:6379/15"),
+        redis_url=redis_url,
         log_format="console",
         # Explícito: la protección de red debe estar activa en las pruebas,
         # independientemente del .env de desarrollo.

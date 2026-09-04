@@ -11,14 +11,14 @@ carencias se declaran como tales.
 
 | Comprobación | Comando | Resultado |
 |--------------|---------|-----------|
-| Suite Python completa | `make test` | 723 pruebas, 0 fallos |
+| Suite Python completa | `make test` | 725 pruebas, 0 fallos |
 | Linters y tipos | `make lint` | ruff, ruff format, mypy (125 archivos) y `astro check` + `tsc` sin errores |
 | Esquema OpenAPI | `make openapi` | 37 rutas, 45 operaciones, 72 esquemas |
 | Migraciones al día | `alembic check` | Sin cambios pendientes |
 | Auditoría real de extremo a extremo | `test-target` en la red Docker | 18 páginas, 16 reglas SEO, 83 alertas ZAP normalizadas a 6 findings, score 87.1, PDF de 22 páginas |
 | Cadena de performance contra la API real | `PageSpeedClient` sobre `https://example.com` | Dos estrategias, 8 Google Scores, 6 métricas, caché en Redis acertando en la repetición y un finding PSI-008 por estrategia |
 
-Reparto de pruebas: 542 unitarias, 181 de integración, 180 marcadas `security`
+Reparto de pruebas: 542 unitarias, 183 de integración, 182 marcadas `security`
 (los marcadores se solapan: una prueba de integración puede ser además de
 seguridad). Las E2E son 20 especificaciones de Playwright: 11 de flujo y 9 de
 seguridad.
@@ -46,7 +46,7 @@ seguridad.
 | RF-08 Datos estructurados | Cumplido | JSON-LD, Schema.org, OpenGraph y Twitter Cards en `services/seo/` |
 | RF-09 PageSpeed real, mobile y desktop | Cumplido y verificado en vivo | Con `PAGESPEED_API_KEY` configurada, `https://example.com` devuelve las dos estrategias con Lighthouse 13.4.1: performance 100, accessibility 96, best practices 96, SEO 80. La ruta de degradación ante el 429 real de Google se verificó antes, sin clave |
 | RF-09 Métricas y respuesta original | Cumplido y verificado en vivo | `models/results.py`: `lcp_ms`, `cls`, `inp_ms`, `fcp_ms`, `tbt_ms`, `speed_index_ms` y `raw` en JSONB. En la medición real llegaron las seis, `inp_ms` incluido, porque el objetivo tiene datos de campo (`has_field_data=True`) |
-| RF-10 OAuth y cifrado en reposo | Implementado, sin verificación en vivo | `services/search_console/oauth.py`, token cifrado con Fernet derivada por HKDF de `SECRET_KEY`. Faltan `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` |
+| RF-10 OAuth y cifrado en reposo | Implementado, falta el consentimiento real | `services/search_console/oauth.py`, token cifrado con Fernet derivada por HKDF de `SECRET_KEY`. Credenciales ya configuradas; el callback se corrigió para funcionar sin sesión, como llega el navegador (D-064) |
 | RF-10 Módulo `skipped` si no hay conexión | Cumplido | `scans/orchestrator.py`; el resto del scan continúa |
 | RF-11 Modelo unificado de finding | Cumplido | `models/finding.py` con `source`, severidad, confianza, evidencia, remediación, CWE y OWASP |
 | RF-11 Fingerprint y deduplicación | Cumplido | `services/findings/models.py`: `sha256(source \| rule \| url canónica \| parámetro)` |
@@ -93,9 +93,13 @@ la plataforma, no solo leyendo el código.
 
 ## 5. Carencias declaradas
 
-1. **Search Console sin verificación en vivo.** El flujo OAuth está implementado
-   contra los endpoints reales; falta ejecutarlo con `GOOGLE_CLIENT_ID` y
-   `GOOGLE_CLIENT_SECRET` y una propiedad verificada.
+1. **Search Console: falta el consentimiento real.** Las credenciales ya están
+   configuradas y el callback se corrigió tras descubrir que exigía sesión y
+   por tanto era imposible de completar desde un navegador (D-064). El canje
+   de código, el cifrado del refresh token y el uso único del `state` están
+   verificados en integración contra el contrato real del navegador, sin
+   cabecera `Authorization`. Queda pulsar «Conectar» y aceptar en Google con
+   una cuenta que tenga una propiedad verificada.
 2. **La prueba E2E de la pantalla de configuración no se ha ejecutado.** Se
    añadió en `tests/e2e/specs/security.spec.ts`, pero la suite E2E exige
    `E2E_EMAIL` y `E2E_PASSWORD` de un usuario real, que no se versionan. Lo que

@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import uuid
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import RedirectResponse
 
 from softree_audit.api.deps import AppSettings, CurrentUser, DbSession
+from softree_audit.core.errors import AppError
+from softree_audit.core.logging import get_logger
 from softree_audit.core.redis import RedisClient
 from softree_audit.integrations.google import GoogleIntegrationService
 from softree_audit.schemas.common import ErrorResponse
@@ -19,6 +22,8 @@ from softree_audit.schemas.integration import (
     GooglePropertySelection,
     GoogleStatusResponse,
 )
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/integrations/google", tags=["integrations"])
 
@@ -72,25 +77,51 @@ async def connect(payload: GoogleConnectRequest, service: ServiceDep) -> GoogleC
     include_in_schema=False,
 )
 async def callback(
-    service: ServiceDep,
+    session: DbSession,
+    settings: AppSettings,
+    redis: Annotated[RedisClient, Depends(get_redis_client)],
     code: Annotated[str | None, Query()] = None,
     state: Annotated[str | None, Query()] = None,
     error: Annotated[str | None, Query()] = None,
 ) -> RedirectResponse:
     """Recibe la respuesta de Google y devuelve al usuario a la interfaz.
 
+    Este endpoint no exige `Authorization`, a diferencia del resto: Google
+    devuelve al usuario con una navegación de primer nivel del navegador, que
+    no lleva la cabecera, y la cookie de refresco es `SameSite=Strict` y está
+    limitada a `/api/v1/auth`, así que tampoco viaja. La identidad sale del
+    `state`: un token de un solo uso de 256 bits, con diez minutos de vida,
+    emitido a un usuario ya autenticado y ligado a un proyecto suyo.
+
     Los errores viajan en la URL como un código breve, no como texto de Google:
     la interfaz los traduce.
     """
     if error or not code or not state:
-        return RedirectResponse(
-            f"{CALLBACK_REDIRECT}?google=error&reason={error or 'missing_code'}",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
+        return _callback_error(error or "missing_code")
 
-    connection = await service.complete_connection(code, state)
+    owner_id = await GoogleIntegrationService.resolve_state_owner(redis, state)
+    if owner_id is None:
+        logger.warning("google.callback_unknown_state")
+        return _callback_error("invalid_state")
+
+    service = GoogleIntegrationService(session, redis, settings, owner_id)
+    try:
+        connection = await service.complete_connection(code, state)
+    except AppError as exc:
+        # El navegador está aquí, no el cliente de la API: un JSON de error
+        # dejaría al usuario en una página en blanco.
+        logger.warning("google.callback_failed", reason=exc.code)
+        return _callback_error(exc.code)
+
     return RedirectResponse(
         f"{CALLBACK_REDIRECT}?google=connected&project_id={connection.project_id}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+def _callback_error(reason: str) -> RedirectResponse:
+    return RedirectResponse(
+        f"{CALLBACK_REDIRECT}?google=error&reason={quote(reason, safe='')}",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 

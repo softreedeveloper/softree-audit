@@ -260,12 +260,37 @@ class GoogleIntegrationService:
     def _state_key(state: str) -> str:
         return f"google:oauth:state:{state}"
 
+    @staticmethod
+    async def resolve_state_owner(redis: RedisClient, state: str) -> uuid.UUID | None:
+        """Dueño del `state`, sin consumirlo.
+
+        El callback de OAuth lo necesita porque Google devuelve al navegador con
+        una navegación de primer nivel: no lleva cabecera `Authorization`, y la
+        cookie de refresco es `SameSite=Strict` y está limitada a `/api/v1/auth`,
+        así que tampoco viaja. La identidad tiene que salir del propio `state`,
+        que es un token de un solo uso de 256 bits emitido a un usuario
+        autenticado. `complete_connection` vuelve a comprobarlo al consumirlo.
+        """
+        if not state:
+            return None
+        try:
+            raw = await redis.get(GoogleIntegrationService._state_key(state))
+        except RedisError:
+            return None
+        if not raw:
+            return None
+        owner, _, _project = str(raw).partition(":")
+        try:
+            return uuid.UUID(owner)
+        except ValueError:
+            return None
+
     async def _consume_state(self, state: str) -> uuid.UUID:
         """Valida y consume el `state`. Un `state` solo sirve una vez."""
         try:
-            raw = await self._redis.get(self._state_key(state))
-            if raw:
-                await self._redis.delete(self._state_key(state))
+            # `getdel` es atómico: dos callbacks simultáneos con el mismo
+            # `state` no pueden canjearlo los dos.
+            raw = await self._redis.getdel(self._state_key(state))
         except RedisError as exc:
             raise InvalidOAuthStateError() from exc
 
