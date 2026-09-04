@@ -16,6 +16,7 @@ carencias se declaran como tales.
 | Esquema OpenAPI | `make openapi` | 37 rutas, 45 operaciones, 72 esquemas |
 | Migraciones al día | `alembic check` | Sin cambios pendientes |
 | Auditoría real de extremo a extremo | `test-target` en la red Docker | 18 páginas, 16 reglas SEO, 83 alertas ZAP normalizadas a 6 findings, score 87.1, PDF de 22 páginas |
+| Cadena de performance contra la API real | `PageSpeedClient` sobre `https://example.com` | Dos estrategias, 8 Google Scores, 6 métricas, caché en Redis acertando en la repetición y un finding PSI-008 por estrategia |
 
 Reparto de pruebas: 542 unitarias, 181 de integración, 180 marcadas `security`
 (los marcadores se solapan: una prueba de integración puede ser además de
@@ -43,8 +44,8 @@ seguridad.
 | RF-07 Normalización de alertas | Cumplido | `services/security/normalizer.py`; las alertas crudas nunca se guardan como finding |
 | RF-08 SEO-001…016 | Cumplido | `services/seo/catalog.py` define las 16 reglas con explicación para cliente |
 | RF-08 Datos estructurados | Cumplido | JSON-LD, Schema.org, OpenGraph y Twitter Cards en `services/seo/` |
-| RF-09 PageSpeed real, mobile y desktop | Implementado, sin verificación en vivo | `services/performance/client.py` contra la API v5 real. Falta `PAGESPEED_API_KEY`; sí se verificó la degradación ante el 429 real de Google |
-| RF-09 Métricas y respuesta original | Cumplido | `models/results.py`: `lcp_ms`, `cls`, `inp_ms`, `fcp_ms`, `tbt_ms`, `speed_index_ms` y `raw` en JSONB |
+| RF-09 PageSpeed real, mobile y desktop | Cumplido y verificado en vivo | Con `PAGESPEED_API_KEY` configurada, `https://example.com` devuelve las dos estrategias con Lighthouse 13.4.1: performance 100, accessibility 96, best practices 96, SEO 80. La ruta de degradación ante el 429 real de Google se verificó antes, sin clave |
+| RF-09 Métricas y respuesta original | Cumplido y verificado en vivo | `models/results.py`: `lcp_ms`, `cls`, `inp_ms`, `fcp_ms`, `tbt_ms`, `speed_index_ms` y `raw` en JSONB. En la medición real llegaron las seis, `inp_ms` incluido, porque el objetivo tiene datos de campo (`has_field_data=True`) |
 | RF-10 OAuth y cifrado en reposo | Implementado, sin verificación en vivo | `services/search_console/oauth.py`, token cifrado con Fernet derivada por HKDF de `SECRET_KEY`. Faltan `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` |
 | RF-10 Módulo `skipped` si no hay conexión | Cumplido | `scans/orchestrator.py`; el resto del scan continúa |
 | RF-11 Modelo unificado de finding | Cumplido | `models/finding.py` con `source`, severidad, confianza, evidencia, remediación, CWE y OWASP |
@@ -92,23 +93,20 @@ la plataforma, no solo leyendo el código.
 
 ## 5. Carencias declaradas
 
-1. **PageSpeed Insights sin verificación en vivo.** El cliente ataca la API real
-   y la ruta de degradación se comprobó contra el 429 real de Google, pero no se
-   ha ejecutado una medición completa: hace falta `PAGESPEED_API_KEY`.
-2. **Search Console sin verificación en vivo.** El flujo OAuth está implementado
+1. **Search Console sin verificación en vivo.** El flujo OAuth está implementado
    contra los endpoints reales; falta ejecutarlo con `GOOGLE_CLIENT_ID` y
    `GOOGLE_CLIENT_SECRET` y una propiedad verificada.
-3. **La prueba E2E de la pantalla de configuración no se ha ejecutado.** Se
+2. **La prueba E2E de la pantalla de configuración no se ha ejecutado.** Se
    añadió en `tests/e2e/specs/security.spec.ts`, pero la suite E2E exige
    `E2E_EMAIL` y `E2E_PASSWORD` de un usuario real, que no se versionan. Lo que
    comprueba esa prueba en la interfaz está cubierto en integración.
-4. **El marcador `slow` está declarado y no lo usa ninguna prueba.** Se mantiene
+3. **El marcador `slow` está declarado y no lo usa ninguna prueba.** Se mantiene
    porque la suite E2E y las auditorías reales lo necesitarán.
-5. **`services/reports/builder.py` consulta la base de datos**, a diferencia del
+4. **`services/reports/builder.py` consulta la base de datos**, a diferencia del
    resto de servicios. Es una excepción consciente: el reporte se construye a
    partir de lo ya persistido. El motor de scoring, que es donde la regla
    importa, sí es una función pura sin IO.
-6. **Sin integración continua.** No hay `.github/workflows`. Los comandos que
+5. **Sin integración continua.** No hay `.github/workflows`. Los comandos que
    ejecutaría (`make lint`, `make test`) están listos y documentados.
 
 ## 6. Fuera de alcance, por decisión
@@ -120,9 +118,9 @@ y agentes autónomos. Ninguno está implementado ni parcialmente presente.
 
 ## 7. Conclusión
 
-Los 16 requisitos funcionales y los 9 no funcionales están implementados. Las
-tres carencias de verificación dependen de credenciales externas que no están
-disponibles en el entorno; ninguna afecta a un límite de seguridad. La
+Los 16 requisitos funcionales y los 9 no funcionales están implementados. La
+única carencia de verificación que queda por credenciales es Search Console;
+no afecta a ningún límite de seguridad. La
 plataforma se ejecutó de extremo a extremo contra un objetivo real y produjo el
 entregable completo: hallazgos normalizados, score, comparación entre
 auditorías y reporte en PDF.
