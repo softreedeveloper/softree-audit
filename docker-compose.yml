@@ -42,7 +42,6 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     volumes:
       - ./apps/api:/app
-      - ./tests:/app/tests
       - reports_data:/data/reports
     ports:
       - "127.0.0.1:8000:8000"
@@ -106,16 +105,6 @@ services:
       - api.key=${ZAP_API_KEY:?ZAP_API_KEY es obligatorio con el perfil scanner}
     expose:
       - "8080"
-
-  # ── Perfil testing: sitio con defectos controlados (Slice 3+) ────────────
-  test-target:
-    build:
-      context: ./test-target
-      dockerfile: Dockerfile
-    profiles: ["testing"]
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8081:80"
 
   worker:
     build:

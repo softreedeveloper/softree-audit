@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Página no encontrada">
+  <main class="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+    <p class="sf-label">Error 404</p>
+    <h1 class="text-3xl font-semibold tracking-tight">Esta página no existe</h1>
+    <p class="sf-muted text-sm">
+      El enlace puede estar mal escrito, o el recurso pudo haberse eliminado.
+    </p>
+    <a class="sf-btn sf-btn-primary" href="/dashboard">Volver al resumen</a>
+  </main>
+</BaseLayout>

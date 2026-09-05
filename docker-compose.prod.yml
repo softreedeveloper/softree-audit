@@ -1,0 +1,132 @@
+# Despliegue de producción.
+#
+# Diferencias con docker-compose.yml, que es de desarrollo:
+#
+#  - El frontend se sirve compilado por nginx, no con el servidor de desarrollo
+#    de Astro, y ese mismo nginx hace de proxy de `/api` hacia la API. Frontend
+#    y API quedan bajo un solo origen, requisito del modelo de sesión (ADR-008).
+#  - No hay montajes del código: la imagen es inmutable.
+#  - Solo el frontend expone un puerto. PostgreSQL, Redis, la API, el worker y
+#    ZAP viven en la red interna.
+#  - ZAP forma parte del despliegue, sin perfil: sin él no hay módulo de
+#    seguridad.
+#
+# Uso:
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+name: softree-audit
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-softree_audit}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-softree_audit}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    volumes:
+      - reports_data:/data/reports
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request,sys;
+          sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).status == 200 else 1)
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    volumes:
+      - reports_data:/data/reports
+    command: ["arq", "softree_audit.worker.WorkerSettings"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.prod.Dockerfile
+      args:
+        PUBLIC_API_BASE_URL: /api/v1
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+
+  # Sin perfil: en producción el módulo de seguridad debe poder ejecutarse.
+  # No publica puertos; solo es alcanzable desde la red interna.
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    restart: unless-stopped
+    command:
+      - zap.sh
+      - -daemon
+      - -host
+      - "0.0.0.0"
+      - -port
+      - "8080"
+      - -config
+      - api.addrs.addr.name=.*
+      - -config
+      - api.addrs.addr.regex=true
+      - -config
+      - api.key=${ZAP_API_KEY:?defina ZAP_API_KEY}
+    expose:
+      - "8080"
+
+volumes:
+  postgres_data:
+  reports_data:

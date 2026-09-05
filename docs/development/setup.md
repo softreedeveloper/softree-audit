@@ -31,7 +31,6 @@ make user        # crea el primer usuario de forma interactiva
 
 ```bash
 docker compose --profile scanner up -d      # añade OWASP ZAP
-docker compose --profile testing up -d      # añade el test-target
 ```
 
 ## Comandos
@@ -43,8 +42,6 @@ make logs          # seguir logs
 make migrate       # alembic upgrade head
 make revision m="mensaje"   # nueva migración autogenerada
 make user          # crear usuario
-make test          # suite completa
-make test-unit     # solo unit
 make lint          # ruff + mypy + tsc
 make fmt           # formateo
 make openapi       # exporta openapi.json y regenera tipos TS

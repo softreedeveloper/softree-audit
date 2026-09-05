@@ -36,15 +36,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.3",
-  "pytest-asyncio>=0.24",
-  "pytest-cov>=6.0",
   "ruff>=0.8",
   "mypy>=1.13",
   "types-redis>=4.6",
   "types-defusedxml>=0.7",
-  "respx>=0.22",
-  "freezegun>=1.5",
 ]
 
 [project.scripts]
@@ -56,7 +51,7 @@ packages = ["softree_audit"]
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-src = ["softree_audit", "tests"]
+src = ["softree_audit"]
 
 [tool.ruff.lint]
 select = [
@@ -79,7 +74,6 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S105", "S106", "S311"]
 "alembic/*" = ["E501"]
 
 [tool.mypy]
@@ -92,20 +86,3 @@ exclude = ["^alembic/versions/"]
 [[tool.mypy.overrides]]
 module = ["uuid6.*", "selectolax.*", "arq.*", "weasyprint.*"]
 ignore_missing_imports = true
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-testpaths = ["tests"]
-pythonpath = ["."]
-addopts = "-ra --strict-markers"
-markers = [
-  "unit: sin dependencias externas",
-  "integration: requiere PostgreSQL y Redis",
-  "security: casos adversarios de seguridad",
-  "slow: excluido del ciclo rápido",
-]
-
-[tool.coverage.run]
-source = ["softree_audit"]
-omit = ["*/alembic/*", "*/scripts/*"]

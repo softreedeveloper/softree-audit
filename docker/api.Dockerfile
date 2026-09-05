@@ -27,8 +27,6 @@ RUN mkdir -p softree_audit && touch softree_audit/__init__.py \
     && pip install --upgrade pip && pip install -e ".[dev]"
 
 COPY apps/api/ ./
-# Las pruebas viven en la raíz del repositorio (docs/spec/architecture.md §6).
-COPY tests/ ./tests/
 
 RUN useradd --create-home --uid 10001 softree \
     && mkdir -p /data/reports \

@@ -2,6 +2,11 @@
 
 Fecha: 2026-09-03 · Versión: Softree Audit 0.1.0
 
+> **Nota del 2026-09-04.** La suite de pruebas que respalda este documento se
+> retiró del repositorio por decisión expresa (D-073). Las comprobaciones que
+> aquí se describen se ejecutaron y se registran tal cual; no pueden repetirse
+> sin recuperar la suite del histórico de git.
+
 Este documento recorre la especificación completa y comprueba, requisito por
 requisito, qué existe realmente en el repositorio. No es un resumen de lo que se
 pretendía construir: cada fila cita el archivo o la prueba que lo respalda, y las

@@ -60,7 +60,6 @@ Perfiles opcionales:
 
 ```bash
 docker compose --profile scanner up -d   # OWASP ZAP
-docker compose --profile testing up -d   # sitio de pruebas con defectos controlados
 ```
 
 `make help` lista todos los comandos.
@@ -82,8 +81,6 @@ docker compose --profile testing up -d   # sitio de pruebas con defectos control
 softree-audit/
 ├── apps/api/       FastAPI, modelos, migraciones, services y scoring
 ├── apps/web/       Astro + React
-├── tests/          unit, integration, e2e
-├── test-target/    sitio con defectos controlados para pruebas
 ├── docs/           especificaciones, guías y ADRs
 ├── docker/         Dockerfiles y bootstrap de PostgreSQL
 └── docker-compose.yml
@@ -117,7 +114,6 @@ softree-audit/
 | [docs/development/slice-10.md](docs/development/slice-10.md) | Alcance y verificación del Slice 10 |
 | [docs/development/slice-11.md](docs/development/slice-11.md) | Alcance y verificación del Slice 11 |
 | [docs/development/final-verification.md](docs/development/final-verification.md) | Verificación final del MVP contra la especificación |
-| [docs/development/testing.md](docs/development/testing.md) | Estrategia de pruebas |
 | [docs/development/deployment.md](docs/development/deployment.md) | Despliegue y rotación de secretos |
 
 ## Estado por slice

@@ -53,30 +53,6 @@ user: ## Crea un usuario de forma interactiva
 shell: ## Shell dentro del contenedor de la API
 	$(COMPOSE) exec api bash
 
-.PHONY: test
-test: ## Suite completa (unit + integration)
-	$(API) pytest
-
-.PHONY: test-unit
-test-unit: ## Solo pruebas unitarias
-	$(API) pytest -m unit
-
-.PHONY: test-integration
-test-integration: ## Solo pruebas de integración
-	$(API) pytest -m integration
-
-.PHONY: test-e2e
-test-e2e: ## Pruebas end to end. Requiere E2E_EMAIL y E2E_PASSWORD
-	@test -n "$(E2E_EMAIL)" -a -n "$(E2E_PASSWORD)" || \
-		(echo 'Uso: make test-e2e E2E_EMAIL=... E2E_PASSWORD=...' && exit 1)
-	cd tests/e2e && npm install && npx playwright install chromium && \
-		E2E_EMAIL="$(E2E_EMAIL)" E2E_PASSWORD="$(E2E_PASSWORD)" npx playwright test
-
-.PHONY: e2e-up
-e2e-up: ## Levanta todo lo que necesitan las pruebas E2E
-	$(COMPOSE) --profile testing --profile scanner up -d
-	@echo "Recuerde SSRF_ALLOW_PRIVATE_NETWORKS=true en .env para auditar el test-target"
-
 .PHONY: lint
 lint: ## ruff + mypy + tsc
 	$(API) ruff check .

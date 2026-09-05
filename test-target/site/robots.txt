@@ -1,3 +1,0 @@
-User-agent: *
-Disallow: /privado/
-Sitemap: http://test-target/sitemap.xml

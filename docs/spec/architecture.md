@@ -118,11 +118,6 @@ softree-audit/
 │   └── web/                 Astro + React
 ├── services/                README que apunta a softree_audit/services
 ├── packages/                README que apunta a softree_audit/scoring
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-├── test-target/             sitio con defectos controlados
 ├── docs/
 ├── docker/
 ├── docker-compose.yml
