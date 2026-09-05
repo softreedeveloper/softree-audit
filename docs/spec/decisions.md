@@ -5,7 +5,7 @@ arquitectónicas mayores viven en `docs/decisions/`.
 
 | ID | Ambigüedad | Decisión | Motivo |
 |----|-----------|----------|--------|
-| D-001 | Nombre del directorio del repositorio | `softree-seo` | Nombre pedido explícitamente. El producto sigue siendo «Softree Audit» |
+| D-001 | Nombre del directorio del repositorio | `softree-audit`, igual que el producto | Inicialmente fue `softree-seo`, el nombre pedido. Se renombró el 2026-09-04: sostener dos nombres para la misma cosa obligaba a aclarar la diferencia en cada documento. Ver ADR-000 |
 | D-002 | Idioma del código y de la documentación | Documentación en español, código, identificadores, API y mensajes de log en inglés | La documentación la leen cliente y equipo; el código lo leen herramientas |
 | D-003 | Cómo se crean los usuarios sin registro público | Comando CLI `softree-audit create-user` | Evita exponer superficie de registro |
 | D-004 | Transporte del token de sesión | Access token JWT vía `Authorization: Bearer`, refresh token en cookie `HttpOnly` | Bearer es directamente consumible por n8n; el refresh en cookie evita persistirlo en el navegador |

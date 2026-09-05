@@ -79,7 +79,7 @@ docker compose --profile testing up -d   # sitio de pruebas con defectos control
 ## Estructura
 
 ```
-softree-seo/
+softree-audit/
 ├── apps/api/       FastAPI, modelos, migraciones, services y scoring
 ├── apps/web/       Astro + React
 ├── tests/          unit, integration, e2e

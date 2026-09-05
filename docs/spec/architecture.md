@@ -108,7 +108,7 @@ Reglas de transición del scan al finalizar:
 ## 6. Estructura del repositorio
 
 ```
-softree-seo/
+softree-audit/
 ├── apps/
 │   ├── api/                 proyecto Python (FastAPI + worker + services + scoring)
 │   │   ├── softree_audit/

@@ -139,7 +139,7 @@ autorizados. Ver `docs/spec/architecture.md` §Extensibilidad.
 
 | ID | Inconsistencia | Resolución |
 |----|----------------|------------|
-| R1 | El proyecto se solicitó como `softree-seo`; el producto especificado es «Softree Audit» | Directorio `softree-seo/`, producto y branding `SOFTREE AUDIT`. ADR-000 |
+| R1 | El proyecto se solicitó como `softree-seo`; el producto especificado es «Softree Audit» | Resuelto renombrando el repositorio a `softree-audit/`, alineado con el producto y el branding. ADR-000 |
 | R2 | Se sugiere Celery o RQ, pero el stack es asíncrono | Cola `arq`, nativa asíncrona sobre Redis. ADR-003 |
 | R3 | Accessibility y Best Practices provienen de Lighthouse, y también pesan en el score propio | Se persisten los scores de Google sin alterar y se calcula aparte el agregado propio. ADR-006 |
 | R4 | INP solo existe con datos de campo (CrUX) | Campo anulable. `null` significa «sin datos de campo», no cero |
