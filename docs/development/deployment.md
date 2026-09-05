@@ -25,7 +25,8 @@ Por eso el proxy de TLS que haya delante solo necesita enrutar un servicio,
 | Archivo | Uso |
 |---------|-----|
 | `docker-compose.yml` | Desarrollo. Monta el código, publica puertos en localhost y arranca Astro en modo desarrollo |
-| `docker-compose.prod.yml` | Producción. Imágenes inmutables, un solo puerto publicado, ZAP incluido sin perfil |
+| `docker-compose.prod.yml` | Producción sobre un host propio. Imágenes inmutables, un solo puerto publicado, ZAP incluido sin perfil |
+| `docker-compose.dokploy.yml` | Igual, pero sin puertos publicados y con `web` en `dokploy-network`, donde vive Traefik |
 | `docker/web.prod.Dockerfile` | Compila el sitio y lo sirve con nginx |
 | `docker/web-nginx.conf` | Rutas estáticas, proxy de `/api` y cabeceras de seguridad |
 
@@ -86,9 +87,13 @@ En el panel, **Projects → Create Project**, nombre `softree-audit`.
 
 **Create Service → Compose**. Origen del código:
 
-- **Provider**: el repositorio de git donde esté publicado este proyecto.
+- **Provider**: GitHub, repositorio `softreedeveloper/softree-audit`.
 - **Branch**: `main`.
-- **Compose Path**: `docker-compose.prod.yml`.
+- **Compose Path**: `./docker-compose.dokploy.yml`.
+
+No es el de producción a secas: el de Dokploy no publica puertos y conecta
+`web` a `dokploy-network`, que es donde Traefik puede alcanzarlo. Con el otro
+archivo el dominio no encontraría el contenedor.
 
 Si el repositorio es privado, conectar antes el proveedor en
 **Settings → Git Providers**.
@@ -129,8 +134,11 @@ WeasyPrint y sus dependencias de sistema.
 Al terminar, en **Terminal** o por SSH:
 
 ```bash
-docker compose -p softree-audit exec api alembic upgrade head
-docker compose -p softree-audit exec api softree-audit create-user
+# El nombre del contenedor lo asigna Dokploy; se localiza así:
+docker ps --filter "name=api" --format "{{.Names}}"
+
+docker exec -it <contenedor-api> alembic upgrade head
+docker exec -it <contenedor-api> softree-audit create-user
 ```
 
 ### 6. Comprobar
