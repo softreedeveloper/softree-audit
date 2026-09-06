@@ -45,7 +45,7 @@ export default function SecuritySummaryView({ summary }: { summary: SecuritySumm
     <div className="flex flex-col gap-4">
       <Card>
         <h2 className="mb-3 text-sm font-semibold">Análisis de seguridad</h2>
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Item label="URL analizadas" value={String(detail.urls_submitted ?? 0)} />
           <Item label="Alertas de ZAP" value={String(detail.alerts_received ?? 0)} />
           <Item label="Hallazgos agrupados" value={String(detail.findings ?? 0)} />
@@ -69,9 +69,9 @@ export default function SecuritySummaryView({ summary }: { summary: SecuritySumm
       ) : (
         <Card className="!px-0 !py-0">
           <h2 className="px-4 py-3 text-sm font-semibold">Principales hallazgos</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="sf-muted text-xs uppercase">
+          <div className="sf-table-wrap">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="sf-muted text-xs uppercase whitespace-nowrap">
                 <tr className="border-y" style={{ borderColor: 'var(--border)' }}>
                   <th className="px-4 py-2 font-medium">Severidad</th>
                   <th className="px-2 py-2 font-medium">Regla</th>
@@ -111,7 +111,7 @@ function Item({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="sf-muted text-xs uppercase tracking-wide">{label}</dt>
-      <dd className="text-lg font-semibold">{value}</dd>
+      <dd className="break-words text-lg font-semibold">{value}</dd>
     </div>
   );
 }

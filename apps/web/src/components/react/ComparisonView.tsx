@@ -85,7 +85,7 @@ export default function ComparisonView({ scanId }: { scanId: string }) {
               : 'Anterior sin fecha de fin'}
           </span>
         </div>
-        <dl className="grid gap-3 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(['regressed', 'new', 'fixed', 'unchanged'] as const).map((kind) => (
             <div key={kind}>
               <dt className="sf-muted text-xs uppercase tracking-wide">{KIND_LABEL[kind]}</dt>
@@ -120,9 +120,9 @@ export default function ComparisonView({ scanId }: { scanId: string }) {
       {data.metrics.length > 0 ? (
         <Card className="!px-0 !py-0">
           <h2 className="px-4 py-3 text-sm font-semibold">Métricas</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="sf-muted text-xs uppercase">
+          <div className="sf-table-wrap">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead className="sf-muted text-xs uppercase whitespace-nowrap">
                 <tr className="border-y" style={{ borderColor: 'var(--border)' }}>
                   <th className="px-4 py-2 font-medium">Métrica</th>
                   <th className="px-2 py-2 font-medium">Antes</th>
@@ -161,12 +161,12 @@ export default function ComparisonView({ scanId }: { scanId: string }) {
           <h2 className="px-4 py-3 text-sm font-semibold">Hallazgos ({changed.length})</h2>
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {changed.map((change) => (
-              <li key={change.fingerprint} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <span className={`w-24 shrink-0 text-xs font-medium ${KIND_COLOR[change.kind]}`}>
+              <li key={change.fingerprint} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                <span className={`shrink-0 text-xs font-medium sm:w-24 ${KIND_COLOR[change.kind]}`}>
                   {KIND_LABEL[change.kind]}
                 </span>
                 <SeverityBadge severity={change.severity} />
-                <div className="min-w-0 flex-1">
+                <div className="w-full min-w-0 sm:w-auto sm:flex-1">
                   <p className="truncate text-sm">
                     {change.rule_id ? `${change.rule_id} · ` : ''}
                     {change.title}

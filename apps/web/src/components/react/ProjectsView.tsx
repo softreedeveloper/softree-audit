@@ -125,7 +125,7 @@ export default function ProjectsView() {
               />
             </Field>
           </div>
-          <div className="flex items-center gap-2 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
             <button type="submit" className="sf-btn sf-btn-primary" disabled={saving || !form.name.trim()}>
               {saving ? 'Guardando…' : editing ? 'Guardar cambios' : 'Crear proyecto'}
             </button>
@@ -155,8 +155,8 @@ export default function ProjectsView() {
         <Card className="!px-0 !py-0">
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {items.map((project) => (
-              <li key={project.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
+              <li key={project.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                <div className="w-full min-w-0 sm:w-auto sm:flex-1">
                   <a
                     className="font-medium hover:underline"
                     href={`/projects?id=${project.id}`}
@@ -170,7 +170,7 @@ export default function ProjectsView() {
                 </div>
 
                 {confirming?.id === project.id ? (
-                  <div className="flex flex-col gap-1">
+                  <div className="flex w-full min-w-0 flex-col gap-1">
                     <ConfirmInline
                       message={
                         project.sites_count > 0
@@ -187,7 +187,7 @@ export default function ProjectsView() {
                     <FormError>{deleteError}</FormError>
                   </div>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <a className="sf-btn sf-btn-ghost" href={`/projects?id=${project.id}`}>
                       Abrir
                     </a>

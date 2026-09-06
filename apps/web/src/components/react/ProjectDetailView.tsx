@@ -114,7 +114,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
     <div className="flex flex-col gap-4">
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold">{project.name}</h2>
             <p className="sf-muted text-sm">
               {project.client_name ?? 'Sin cliente asignado'} · {project.sites_count} sitio(s)
@@ -124,7 +124,9 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
             Volver
           </a>
         </div>
-        {project.notes ? <p className="mt-3 text-sm whitespace-pre-line">{project.notes}</p> : null}
+        {project.notes ? (
+          <p className="mt-3 break-words text-sm whitespace-pre-line">{project.notes}</p>
+        ) : null}
       </Card>
 
       <Card>
@@ -193,7 +195,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
               />
             </Field>
           </div>
-          <div className="flex items-center gap-2 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
             <button
               type="submit"
               className="sf-btn sf-btn-primary"
@@ -215,8 +217,8 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
         <Card className="!px-0 !py-0">
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {siteList.map((site) => (
-              <li key={site.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
+              <li key={site.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                <div className="w-full min-w-0 sm:w-auto sm:flex-1">
                   <a className="font-medium hover:underline" href={`/sites?id=${site.id}`}>
                     {site.name}
                   </a>
@@ -228,7 +230,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
                 {site.is_active ? null : <Badge tone="muted">Inactivo</Badge>}
 
                 {confirming?.id === site.id ? (
-                  <div className="flex flex-col gap-1">
+                  <div className="flex w-full min-w-0 flex-col gap-1">
                     <ConfirmInline
                       message={
                         site.scans_count > 0
@@ -245,7 +247,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
                     <FormError>{deleteError}</FormError>
                   </div>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <a className="sf-btn sf-btn-ghost" href={`/sites?id=${site.id}`}>
                       Configurar
                     </a>

@@ -115,8 +115,8 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
 
       {/* Encabezado */}
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <p className="sf-label">
+        <div className="min-w-0 flex-1">
+          <p className="sf-label break-words">
             {now.toLocaleDateString(undefined, {
               weekday: 'long',
               day: '2-digit',
@@ -124,7 +124,7 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
               year: 'numeric',
             })}
           </p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight">
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-4xl">
             {greeting(now)}
             {userName ? `, ${userName}` : ''}.
           </h1>
@@ -137,14 +137,14 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
           </p>
         </div>
 
-        <a className="sf-btn sf-btn-primary" href="/projects">
+        <a className="sf-btn sf-btn-primary w-full sm:w-auto" href="/projects">
           Nueva auditoría <span aria-hidden="true">→</span>
         </a>
       </header>
 
       {/* Score y última auditoría */}
       <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <Card className="!p-6">
+        <Card className="!p-4 sm:!p-6">
           <div className="flex items-start justify-between gap-4">
             <p className="sf-label">Estado general</p>
             {delta !== null ? (
@@ -164,13 +164,13 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
 
           <div className="mt-5 flex flex-wrap items-end gap-6">
             <p className="flex items-baseline gap-1">
-              <span className="text-6xl font-semibold tracking-tight">
+              <span className="text-5xl font-semibold tracking-tight sm:text-6xl">
                 {score !== null ? score.toFixed(0) : '—'}
               </span>
               <span className="sf-muted text-lg">/100</span>
             </p>
 
-            <div className="min-w-[220px] flex-1">
+            <div className="w-full min-w-0 flex-1 sm:w-auto sm:min-w-[220px]">
               {score !== null ? (
                 <>
                   <p className="font-medium" style={{ color: 'var(--accent)' }}>
@@ -197,7 +197,7 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
           ) : null}
         </Card>
 
-        <Card className="!p-6">
+        <Card className="!p-4 sm:!p-6">
           <div className="flex items-start justify-between gap-3">
             <p className="sf-label">Última auditoría</p>
             {latest ? <Badge tone={STATUS_TONE[latest.status]}>{STATUS_LABEL[latest.status]}</Badge> : null}
@@ -205,7 +205,7 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
 
           {latest ? (
             <>
-              <h2 className="mt-1 truncate text-xl font-semibold">{latest.site_name}</h2>
+              <h2 className="mt-1 truncate text-lg font-semibold sm:text-xl">{latest.site_name}</h2>
               <p className="sf-muted truncate text-sm">{latest.site_base_url}</p>
 
               <dl className="mt-6 grid grid-cols-2 gap-4">
@@ -245,7 +245,7 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
 
       {/* Desglose por categoría */}
       <section
-        className="sf-card grid gap-px overflow-hidden sm:grid-cols-2 lg:grid-cols-4"
+        className="sf-card grid grid-cols-2 gap-px overflow-hidden lg:grid-cols-4"
         style={{ backgroundColor: 'var(--border)' }}
         aria-label="Puntuación por categoría"
       >
@@ -255,7 +255,7 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
           return (
             <div
               key={category.key}
-              className="flex items-baseline gap-3 px-5 py-4"
+              className="flex flex-wrap items-baseline gap-x-3 px-4 py-4 sm:px-5"
               style={{ backgroundColor: 'var(--surface-raised)' }}
             >
               <span
@@ -271,10 +271,10 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
       </section>
 
       {/* Hallazgos abiertos */}
-      <Card className="!p-6">
+      <Card className="!p-4 sm:!p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold">Hallazgos por resolver</h2>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold sm:text-xl">Hallazgos por resolver</h2>
             <p className="sf-muted text-sm">
               Estado actual de cada sitio, según su última auditoría terminada.
             </p>
@@ -288,7 +288,7 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
           </a>
         </div>
 
-        <dl className="mt-5 grid gap-4 sm:grid-cols-5">
+        <dl className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-5">
           {SEVERITY_ORDER.map((severity) => {
             const value = data.open_findings_by_severity[severity] ?? 0;
             return (
@@ -319,10 +319,10 @@ export default function DashboardOverview({ userName }: { userName?: string }) {
         />
       ) : (
         <Card className="!px-0 !py-0">
-          <h2 className="px-6 py-4 text-xl font-semibold">Auditorías recientes</h2>
+          <h2 className="px-4 py-4 text-xl font-semibold sm:px-6">Auditorías recientes</h2>
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {data.recent_scans.map((scan) => (
-              <li key={scan.scan_id} className="flex flex-wrap items-center gap-3 px-6 py-3.5">
+              <li key={scan.scan_id} className="flex flex-wrap items-center gap-3 px-4 py-3.5 sm:px-6">
                 <div className="min-w-0 flex-1">
                   <a className="font-medium hover:underline" href={`/audits?id=${scan.scan_id}`}>
                     {scan.site_name}

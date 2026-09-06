@@ -41,9 +41,9 @@ export default function SiteHistoryView({ siteId }: { siteId: string }) {
 
   return (
     <Card className="!px-0 !py-0">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="sf-muted text-xs uppercase">
+      <div className="sf-table-wrap">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead className="sf-muted text-xs uppercase whitespace-nowrap">
             <tr className="border-y" style={{ borderColor: 'var(--border)' }}>
               <th className="px-4 py-2 font-medium">Fecha</th>
               <th className="px-2 py-2 font-medium">Tipo</th>

@@ -34,7 +34,7 @@ export default function SeoSummary({ result }: { result: SeoResult }) {
     <div className="flex flex-col gap-4">
       <Card>
         <h2 className="mb-3 text-sm font-semibold">Indicadores SEO</h2>
-        <dl className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {indicators.map((indicator) => (
             <div key={indicator.label}>
               <dt className="sf-muted text-xs uppercase tracking-wide">{indicator.label}</dt>
@@ -73,7 +73,7 @@ export default function SeoSummary({ result }: { result: SeoResult }) {
             <li>
               Bloques JSON-LD inválidos: {String(structured.invalid_json_ld_blocks ?? 0)}
             </li>
-            <li className="sf-muted text-xs">
+            <li className="sf-muted break-words text-xs">
               Tipos detectados:{' '}
               {Array.isArray(structured.schema_types) && structured.schema_types.length > 0
                 ? structured.schema_types.join(', ')

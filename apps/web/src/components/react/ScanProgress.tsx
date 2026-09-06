@@ -96,14 +96,14 @@ export default function ScanProgress({
       ) : (
         <ul className="flex flex-col gap-1">
           {modules.map((module) => (
-            <li key={module.module} className="flex items-center gap-2 text-sm">
+            <li key={module.module} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
               <span className={`w-4 text-center ${MODULE_COLOR[module.status]}`} aria-hidden="true">
                 {MODULE_ICON[module.status]}
               </span>
-              <span className="min-w-32">{MODULE_LABELS[module.module] ?? module.module}</span>
+              <span className="sm:min-w-32">{MODULE_LABELS[module.module] ?? module.module}</span>
               <span className="sf-muted text-xs">{formatDuration(module.duration_ms)}</span>
               {module.error ? (
-                <span className="text-xs text-red-600" title={module.error}>
+                <span className="min-w-0 flex-1 truncate text-xs text-red-600" title={module.error}>
                   {module.error.slice(0, 80)}
                 </span>
               ) : null}

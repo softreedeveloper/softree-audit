@@ -155,14 +155,14 @@ export default function ScanDetailView({ scanId }: { scanId: string }) {
     <div className="flex flex-col gap-4">
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold">{scan.site_name}</h2>
             <p className="sf-muted truncate text-sm">
               {scan.site_base_url} · {scan.scan_type} ·{' '}
               {new Date(scan.queued_at).toLocaleString()}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge tone={STATUS_TONE[scan.status]}>{STATUS_LABEL[scan.status]}</Badge>
             {running ? (
               <button
@@ -204,7 +204,7 @@ export default function ScanDetailView({ scanId }: { scanId: string }) {
       {scan.error ? (
         <Card>
           <h2 className="mb-1 text-sm font-semibold text-red-600">Error</h2>
-          <p className="text-sm">{scan.error}</p>
+          <p className="break-words text-sm">{scan.error}</p>
         </Card>
       ) : null}
 
@@ -215,7 +215,7 @@ export default function ScanDetailView({ scanId }: { scanId: string }) {
       {TERMINAL_STATUSES.includes(scan.status) ? (
         <>
           <nav
-            className="flex flex-wrap gap-1 border-b"
+            className="sf-tabs border-b"
             style={{ borderColor: 'var(--border)' }}
             aria-label="Secciones de la auditoría"
           >
@@ -235,7 +235,7 @@ export default function ScanDetailView({ scanId }: { scanId: string }) {
               <button
                 key={value}
                 type="button"
-                className="rounded-t-lg px-3 py-2 text-sm capitalize"
+                className="shrink-0 whitespace-nowrap rounded-t-lg px-3 py-2 text-sm capitalize"
                 aria-current={tab === value ? 'page' : undefined}
                 style={
                   tab === value
@@ -315,7 +315,7 @@ function SeverityRow({ counts }: { counts: SeverityCounts }) {
     ['Informativos', counts.info, ''],
   ];
   return (
-    <section className="grid gap-3 sm:grid-cols-5">
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-5">
       {entries.map(([label, value, tone]) => (
         <div key={label} className="sf-card px-4 py-3">
           <p className="sf-muted text-xs uppercase tracking-wide">{label}</p>
@@ -330,7 +330,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="sf-card px-4 py-3">
       <p className="sf-muted text-xs uppercase tracking-wide">{label}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
+      <p className="mt-1 break-words text-lg font-semibold">{value}</p>
     </div>
   );
 }
@@ -339,9 +339,9 @@ function PagesTable({ pages }: { pages: CrawledPage[] }) {
   return (
     <Card className="!px-0 !py-0">
       <h2 className="px-4 py-3 text-sm font-semibold">Páginas rastreadas ({pages.length})</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="sf-muted text-xs uppercase">
+      <div className="sf-table-wrap">
+        <table className="w-full min-w-[880px] text-left text-sm">
+          <thead className="sf-muted text-xs uppercase whitespace-nowrap">
             <tr className="border-y" style={{ borderColor: 'var(--border)' }}>
               <th className="px-4 py-2 font-medium">URL</th>
               <th className="px-2 py-2 font-medium">Código</th>

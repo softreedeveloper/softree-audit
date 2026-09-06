@@ -94,7 +94,7 @@ export default function FindingsList({
       </label>
       <select
         id="filter-severity"
-        className="sf-input max-w-40"
+        className="sf-input max-w-40 flex-1"
         value={severityFilter}
         onChange={(event) => setSeverityFilter(event.target.value)}
       >
@@ -111,7 +111,7 @@ export default function FindingsList({
       </label>
       <select
         id="filter-status"
-        className="sf-input max-w-40"
+        className="sf-input max-w-40 flex-1"
         value={statusFilter}
         onChange={(event) => setStatusFilter(event.target.value)}
       >
@@ -167,7 +167,7 @@ export default function FindingsList({
                     </p>
                   </div>
                   <select
-                    className="sf-input max-w-40"
+                    className="sf-input w-full max-w-40 sm:w-auto"
                     aria-label={`Estado de ${finding.title}`}
                     value={finding.status}
                     disabled={updating === finding.id}
@@ -197,7 +197,7 @@ export default function FindingsList({
                     ) : null}
                     {finding.evidence ? (
                       <Detail label="Evidencia">
-                        <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs">
+                        <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-words font-mono text-xs">
                           {finding.evidence}
                         </pre>
                       </Detail>

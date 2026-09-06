@@ -98,6 +98,8 @@
 
   html {
     color-scheme: light dark;
+    /* El móvil no debe reescalar la tipografía al girar la pantalla. */
+    -webkit-text-size-adjust: 100%;
   }
 
   html[data-theme="light"] {
@@ -113,6 +115,9 @@
     color: var(--text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    /* Red de seguridad para URL, hashes y nombres de dominio largos: sin esto
+       parten la caja que los contiene en pantallas estrechas. */
+    overflow-wrap: break-word;
   }
 
   :focus-visible {
@@ -140,6 +145,8 @@
 
   .sf-input {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     background-color: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
@@ -150,6 +157,14 @@
 
   .sf-input::placeholder {
     color: var(--text-faint);
+  }
+
+  /* En iOS un campo por debajo de 16px hace que el navegador amplíe la página
+     al enfocarlo, y ya no vuelve a su sitio. */
+  @media (max-width: 640px) {
+    .sf-input {
+      font-size: 1rem;
+    }
   }
 
   .sf-btn {
@@ -163,6 +178,9 @@
     font-weight: 500;
     transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
     cursor: pointer;
+    /* Objetivo táctil mínimo; el texto no se parte en dos líneas. */
+    min-height: 2.25rem;
+    white-space: nowrap;
   }
 
   .sf-btn-primary {
@@ -198,6 +216,7 @@
   /* Elemento de navegación de la barra lateral. */
   .sf-nav-item {
     display: flex;
+    min-height: 2.5rem;
     align-items: center;
     gap: 0.625rem;
     border-radius: 0.625rem;
@@ -218,6 +237,48 @@
     border-color: var(--border);
     color: var(--text);
     font-weight: 500;
+  }
+
+  /* Botón cuadrado solo con icono: menú, cerrar. */
+  .sf-icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    border-radius: 0.625rem;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  .sf-icon-btn:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+
+  /* Contenedor de tabla: en móvil se desplaza en horizontal en lugar de
+     desbordar la tarjeta o comprimir las columnas hasta lo ilegible. */
+  .sf-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Fila de pestañas desplazable, sin barra visible. */
+  .sf-tabs {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sf-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .sf-dot {
