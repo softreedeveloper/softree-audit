@@ -115,7 +115,7 @@ export default function ReportsView({ scanId }: { scanId: string }) {
           </div>
           <button
             type="button"
-            className="sf-btn sf-btn-primary"
+            className="sf-btn sf-btn-primary w-full sm:w-auto"
             disabled={busy}
             onClick={() => void generate()}
           >
@@ -173,19 +173,19 @@ export default function ReportsView({ scanId }: { scanId: string }) {
                   return (
                     <li
                       key={`${key}-${format}`}
-                      className="flex flex-wrap items-center gap-3 px-4 py-3"
+                      className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
                     >
-                      <span className="w-16 font-medium">{label}</span>
+                      <span className="w-12 shrink-0 font-medium">{label}</span>
                       <span className="sf-muted text-xs">{formatSize(report.size_bytes)}</span>
                       <span className="sf-muted text-xs">
                         {new Date(report.generated_at).toLocaleString()}
                       </span>
-                      <span className="sf-muted flex-1 truncate font-mono text-xs">
+                      <span className="sf-muted min-w-0 flex-1 truncate font-mono text-xs">
                         sha256:{(report.checksum_sha256 ?? '').slice(0, 16)}
                       </span>
                       <button
                         type="button"
-                        className="sf-btn sf-btn-ghost"
+                        className="sf-btn sf-btn-ghost ml-auto"
                         onClick={() => void download(format, key)}
                       >
                         Descargar

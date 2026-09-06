@@ -21,12 +21,12 @@ const toneRing: Record<NonNullable<StateShellProps['tone']>, string> = {
 
 function StateShell({ icon, title, description, action, tone = 'neutral' }: StateShellProps) {
   return (
-    <div className="sf-card flex flex-col items-center gap-3 px-6 py-12 text-center">
+    <div className="sf-card flex flex-col items-center gap-3 px-4 py-10 text-center sm:px-6 sm:py-12">
       <div className={`text-2xl ${toneRing[tone]}`} aria-hidden="true">
         {icon}
       </div>
       <h2 className="text-base font-semibold">{title}</h2>
-      {description ? <p className="sf-muted max-w-md text-sm">{description}</p> : null}
+      {description ? <p className="sf-muted max-w-md break-words text-sm">{description}</p> : null}
       {action}
     </div>
   );
@@ -35,7 +35,7 @@ function StateShell({ icon, title, description, action, tone = 'neutral' }: Stat
 export function LoadingState({ label = 'Cargando…' }: { label?: string }) {
   return (
     <div
-      className="sf-card flex items-center justify-center gap-3 px-6 py-12"
+      className="sf-card flex items-center justify-center gap-3 px-4 py-10 sm:px-6 sm:py-12"
       role="status"
       aria-live="polite"
     >

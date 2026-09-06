@@ -1,5 +1,9 @@
 /** Contenedor de la aplicación autenticada: barra lateral, encabezado y
  *  control de sesión. Muestra Loading y Unauthorized sin dejar la vista vacía.
+ *
+ *  En pantallas estrechas la barra lateral se convierte en un cajón que se
+ *  abre desde el encabezado: sin él la navegación quedaba inalcanzable en
+ *  móvil, que es donde más se consulta el estado de una auditoría en curso.
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
@@ -131,6 +135,49 @@ const NAV: NavGroup[] = [
   },
 ];
 
+/** Marca de la aplicación. Se repite en la barra lateral y en el cajón. */
+function Brand() {
+  return (
+    <a href="/dashboard" className="flex min-w-0 items-center gap-3 px-2">
+      <span
+        className="grid size-9 shrink-0 place-items-center rounded-xl text-base font-bold"
+        style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-contrast)' }}
+        aria-hidden="true"
+      >
+        S
+      </span>
+      <span className="min-w-0 leading-tight">
+        <span className="block text-sm font-semibold tracking-[0.18em]">SOFTREE</span>
+        <span className="sf-label block">Audit platform</span>
+      </span>
+    </a>
+  );
+}
+
+function NavLinks({ current, onNavigate }: { current: string; onNavigate?: () => void }) {
+  return (
+    <>
+      {NAV.map((group) => (
+        <div key={group.title} className="flex flex-col gap-1">
+          <p className="sf-label px-3 pb-1">{group.title}</p>
+          {group.items.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              aria-current={item.href === current ? 'page' : undefined}
+              className="sf-nav-item"
+              onClick={onNavigate}
+            >
+              {item.icon}
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            </a>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
 interface AppShellProps {
   title: string;
   subtitle?: string;
@@ -141,6 +188,7 @@ interface AppShellProps {
 export default function AppShell({ title, subtitle, current, children }: AppShellProps) {
   const [session, setSession] = useState<SessionState>(getSession());
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribe(setSession);
@@ -157,6 +205,22 @@ export default function AppShell({ title, subtitle, current, children }: AppShel
       .catch(() => setHealth(null));
   }, [session.status]);
 
+  // Con el cajón abierto se bloquea el desplazamiento del fondo y se cierra con
+  // Escape: es un diálogo, y comportarse como tal evita que quede atrapado.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
+
   const operational = health?.status === 'ok';
   const initials = (session.user?.full_name ?? session.user?.email ?? 'S')
     .split(/[\s@.]+/)
@@ -165,53 +229,30 @@ export default function AppShell({ title, subtitle, current, children }: AppShel
     .map((part) => part[0]?.toUpperCase())
     .join('');
 
+  const userChip = session.user ? (
+    <div
+      className="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm"
+      style={{ borderColor: 'var(--border)' }}
+    >
+      <span className="sf-dot shrink-0" aria-hidden="true" />
+      <span className="min-w-0 flex-1 truncate">{session.user.full_name}</span>
+    </div>
+  ) : null;
+
   return (
     <div className="flex min-h-screen">
       <aside
         className="hidden w-64 shrink-0 flex-col border-r px-3 py-5 md:flex"
         style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-sidebar)' }}
       >
-        <a href="/dashboard" className="mb-6 flex items-center gap-3 px-2">
-          <span
-            className="grid size-9 place-items-center rounded-xl text-base font-bold"
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-contrast)' }}
-            aria-hidden="true"
-          >
-            S
-          </span>
-          <span className="leading-tight">
-            <span className="block text-sm font-semibold tracking-[0.18em]">SOFTREE</span>
-            <span className="sf-label block">Audit platform</span>
-          </span>
-        </a>
+        <div className="mb-6">
+          <Brand />
+        </div>
 
-        {session.user ? (
-          <div
-            className="mb-6 flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            <span className="sf-dot" aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate">{session.user.full_name}</span>
-          </div>
-        ) : null}
+        {userChip ? <div className="mb-6">{userChip}</div> : null}
 
         <nav className="flex flex-1 flex-col gap-6" aria-label="Navegación principal">
-          {NAV.map((group) => (
-            <div key={group.title} className="flex flex-col gap-1">
-              <p className="sf-label px-3 pb-1">{group.title}</p>
-              {group.items.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  aria-current={item.href === current ? 'page' : undefined}
-                  className="sf-nav-item"
-                >
-                  {item.icon}
-                  <span className="flex-1">{item.label}</span>
-                </a>
-              ))}
-            </div>
-          ))}
+          <NavLinks current={current} />
         </nav>
 
         <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
@@ -219,22 +260,78 @@ export default function AppShell({ title, subtitle, current, children }: AppShel
         </div>
       </aside>
 
+      {/* Cajón de navegación en pantallas estrechas. */}
+      {menuOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navegación principal">
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full bg-black/50"
+            aria-label="Cerrar navegación"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div
+            className="absolute inset-y-0 left-0 flex w-[min(19rem,85vw)] flex-col overflow-y-auto border-r px-3 py-5"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-sidebar)' }}
+          >
+            <div className="mb-6 flex items-start justify-between gap-2">
+              <Brand />
+              <button
+                type="button"
+                className="sf-icon-btn"
+                aria-label="Cerrar navegación"
+                onClick={() => setMenuOpen(false)}
+              >
+                <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                  <path d="m4 4 8 8M12 4l-8 8" />
+                </svg>
+              </button>
+            </div>
+
+            {userChip ? <div className="mb-6">{userChip}</div> : null}
+
+            <nav className="flex flex-1 flex-col gap-6" aria-label="Navegación principal">
+              <NavLinks current={current} onNavigate={() => setMenuOpen(false)} />
+            </nav>
+
+            <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex min-w-0 flex-1 flex-col" style={{ backgroundColor: 'var(--surface)' }}>
         <header
-          className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 md:px-8"
+          className="flex items-center justify-between gap-2 border-b px-3 py-3 sm:px-4 sm:gap-3 md:px-8 md:py-3.5"
           style={{ borderColor: 'var(--border)' }}
         >
-          <nav className="flex min-w-0 items-center gap-2 text-sm" aria-label="Migas de pan">
-            <span style={{ color: 'var(--text-faint)' }}>Workspace</span>
-            <span style={{ color: 'var(--text-faint)' }} aria-hidden="true">
-              /
-            </span>
-            <span className="truncate font-medium">{title}</span>
-          </nav>
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <button
+              type="button"
+              className="sf-icon-btn md:hidden"
+              aria-label="Abrir navegación"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(true)}
+            >
+              <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+              </svg>
+            </button>
 
-          <div className="flex items-center gap-3">
+            <nav className="flex min-w-0 items-center gap-2 text-sm" aria-label="Migas de pan">
+              <span className="hidden sm:inline" style={{ color: 'var(--text-faint)' }}>
+                Workspace
+              </span>
+              <span className="hidden sm:inline" style={{ color: 'var(--text-faint)' }} aria-hidden="true">
+                /
+              </span>
+              <span className="truncate font-medium">{title}</span>
+            </nav>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {health ? (
-              <span className="hidden items-center gap-2 text-xs sm:flex">
+              <span className="hidden items-center gap-2 text-xs lg:flex">
                 <span
                   className="sf-dot"
                   style={operational ? undefined : { backgroundColor: 'var(--tone-danger)' }}
@@ -259,7 +356,7 @@ export default function AppShell({ title, subtitle, current, children }: AppShel
                   Salir
                 </button>
                 <span
-                  className="grid size-8 place-items-center rounded-full text-xs font-semibold"
+                  className="grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold"
                   style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-contrast)' }}
                   title={session.user?.email}
                 >
@@ -270,8 +367,8 @@ export default function AppShell({ title, subtitle, current, children }: AppShel
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-8 md:px-8">
-          <div className="mx-auto flex max-w-6xl flex-col gap-5">
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
+          <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-5">
             {subtitle && session.status === 'authenticated' ? (
               <p className="sf-muted -mb-1 text-sm">{subtitle}</p>
             ) : null}

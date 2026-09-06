@@ -83,13 +83,15 @@ export default function SearchConsoleView({ scanId }: { scanId: string }) {
     <div className="flex flex-col gap-4">
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-sm font-semibold">Search Console</h2>
-            <p className="sf-muted text-xs">{data.property_url ?? 'Propiedad no indicada'}</p>
+            <p className="sf-muted break-words text-xs">
+              {data.property_url ?? 'Propiedad no indicada'}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
-              className="sf-input max-w-36"
+              className="sf-input max-w-36 flex-1"
               aria-label="Periodo"
               value={period}
               onChange={(event) => setPeriod(event.target.value)}
@@ -101,7 +103,7 @@ export default function SearchConsoleView({ scanId }: { scanId: string }) {
               ))}
             </select>
             <select
-              className="sf-input max-w-40"
+              className="sf-input max-w-40 flex-1"
               aria-label="Dimensión"
               value={dimension}
               onChange={(event) => setDimension(event.target.value)}
@@ -116,7 +118,7 @@ export default function SearchConsoleView({ scanId }: { scanId: string }) {
         </div>
 
         {totals ? (
-          <dl className="mt-4 grid gap-3 sm:grid-cols-4">
+          <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Total label="Clics" value={totals.clicks.toLocaleString()} />
             <Total label="Impresiones" value={totals.impressions.toLocaleString()} />
             <Total label="CTR" value={`${(totals.ctr * 100).toFixed(2)} %`} />
@@ -139,9 +141,9 @@ export default function SearchConsoleView({ scanId }: { scanId: string }) {
         />
       ) : (
         <Card className="!px-0 !py-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="sf-muted text-xs uppercase">
+          <div className="sf-table-wrap">
+            <table className="w-full min-w-[600px] text-left text-sm">
+              <thead className="sf-muted text-xs uppercase whitespace-nowrap">
                 <tr className="border-y" style={{ borderColor: 'var(--border)' }}>
                   <th className="px-4 py-2 font-medium">
                     {DIMENSIONS.find(([value]) => value === dimension)?.[1] ?? dimension}

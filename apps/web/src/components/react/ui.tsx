@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`sf-card px-4 py-4 ${className}`}>{children}</section>;
+  return <section className={`sf-card px-4 py-4 sm:px-5 ${className}`}>{children}</section>;
 }
 
 export function Field({
@@ -49,7 +49,7 @@ export function Badge({
   };
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs"
       style={styles[tone]}
     >
       {children}
@@ -76,8 +76,12 @@ export function ConfirmInline({
   onCancel: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm" role="alertdialog" aria-live="polite">
-      <span>{message}</span>
+    <div
+      className="flex min-w-0 flex-wrap items-center gap-2 text-sm"
+      role="alertdialog"
+      aria-live="polite"
+    >
+      <span className="min-w-0 break-words">{message}</span>
       <button type="button" className="sf-btn sf-btn-primary" disabled={busy} onClick={onConfirm}>
         {busy ? 'Eliminando…' : confirmLabel}
       </button>
@@ -91,7 +95,7 @@ export function ConfirmInline({
 export function FormError({ children }: { children: ReactNode }) {
   if (!children) return null;
   return (
-    <p className="text-sm text-red-600" role="alert">
+    <p className="min-w-0 break-words text-sm text-red-600" role="alert">
       {children}
     </p>
   );

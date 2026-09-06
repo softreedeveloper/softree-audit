@@ -71,8 +71,8 @@ export default function AuditsView({ siteId }: { siteId?: string }) {
     <Card className="!px-0 !py-0">
       <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
         {items.map((scan) => (
-          <li key={scan.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-            <div className="min-w-0 flex-1">
+          <li key={scan.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+            <div className="w-full min-w-0 sm:w-auto sm:flex-1">
               <a className="font-medium hover:underline" href={`/audits?id=${scan.id}`}>
                 {scan.site_name}
               </a>
@@ -87,7 +87,7 @@ export default function AuditsView({ siteId }: { siteId?: string }) {
               <span className="sf-muted text-xs">{scan.progress}%</span>
             ) : null}
             <Badge tone={STATUS_TONE[scan.status]}>{STATUS_LABEL[scan.status]}</Badge>
-            <a className="sf-btn sf-btn-ghost" href={`/audits?id=${scan.id}`}>
+            <a className="sf-btn sf-btn-ghost ml-auto" href={`/audits?id=${scan.id}`}>
               Ver
             </a>
           </li>

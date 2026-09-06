@@ -53,7 +53,7 @@ export default function SettingsView() {
     <div className="flex flex-col gap-4">
       <Card>
         <h2 className="mb-3 text-sm font-semibold">Cuenta</h2>
-        <dl className="grid gap-3 sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Item label="Usuario" value={data.user_full_name} />
           <Item label="Email" value={data.user_email} />
           <Item label="Entorno" value={data.environment} />
@@ -71,7 +71,7 @@ export default function SettingsView() {
           sin datos no cuenta como cero: su peso se reparte entre las demás, y el peso aplicado se
           guarda con cada auditoría para que un cambio no altere el histórico.
         </p>
-        <dl className="grid gap-3 sm:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {weights.map(([key, value]) => (
             <Item
               key={key}
@@ -99,7 +99,7 @@ export default function SettingsView() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{integration.name}</p>
                 <p className="sf-muted text-xs">{integration.detail}</p>
-                <p className="sf-muted mt-1 font-mono text-xs">
+                <p className="sf-muted mt-1 break-all font-mono text-xs">
                   {integration.variables.join(' · ')}
                 </p>
                 {integration.callback_url ? (
@@ -127,7 +127,7 @@ export default function SettingsView() {
         <p className="sf-muted mb-3 text-xs">
           Ningún scope puede superar estos máximos, aunque se pidan valores mayores.
         </p>
-        <dl className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <Item label="Páginas máximas" value={String(data.scope_defaults.max_pages)} />
           <Item label="Profundidad máxima" value={String(data.scope_defaults.max_depth)} />
           <Item label="Timeout (s)" value={String(data.scope_defaults.timeout_seconds)} />
@@ -135,7 +135,7 @@ export default function SettingsView() {
           <Item label="Puertos permitidos" value={data.allowed_ports.join(', ')} />
         </dl>
 
-        <div className="mt-4 grid gap-3 border-t pt-3 sm:grid-cols-3" style={{ borderColor: 'var(--border)' }}>
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 sm:grid-cols-3" style={{ borderColor: 'var(--border)' }}>
           <Item label="Access token" value={`${data.access_token_ttl_minutes} min`} />
           <Item label="Refresh token" value={`${data.refresh_token_ttl_days} días`} />
           <div>
@@ -164,7 +164,7 @@ export default function SettingsView() {
           Cada auditoría y cada reporte guardan la versión con la que se produjeron, para poder
           comparar resultados entre versiones del motor.
         </p>
-        <dl className="grid gap-3 sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Item label="Softree Audit" value={data.app_version} mono />
           <Item label="Motor de scan" value={data.scan_engine_version} mono />
           <Item label="Reporte" value={data.report_version} mono />
@@ -178,7 +178,9 @@ function Item({ label, value, mono }: { label: string; value: string; mono?: boo
   return (
     <div>
       <dt className="sf-muted text-xs uppercase tracking-wide">{label}</dt>
-      <dd className={`text-lg font-semibold ${mono ? 'font-mono text-base' : ''}`}>{value}</dd>
+      <dd className={`break-words text-lg font-semibold ${mono ? 'font-mono text-base' : ''}`}>
+        {value}
+      </dd>
     </div>
   );
 }

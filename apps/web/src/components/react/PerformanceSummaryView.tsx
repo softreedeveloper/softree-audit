@@ -70,9 +70,9 @@ export default function PerformanceSummaryView({ summary }: { summary: Performan
             Puntuaciones oficiales de Google{version ? ` · Lighthouse ${version}` : ''}
           </span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="sf-muted text-xs uppercase">
+        <div className="sf-table-wrap">
+          <table className="w-full min-w-[420px] text-left text-sm">
+            <thead className="sf-muted text-xs uppercase whitespace-nowrap">
               <tr className="border-y" style={{ borderColor: 'var(--border)' }}>
                 <th className="px-2 py-2 font-medium">Categoría</th>
                 {summary.results.map((row) => (
@@ -170,7 +170,7 @@ function Metrics({ result }: { result: PerformanceResult }) {
       <h3 className="sf-muted mb-2 text-xs font-medium uppercase tracking-wide">
         {result.strategy}
       </h3>
-      <dl className="grid grid-cols-2 gap-2 text-sm">
+      <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
         {rows.map(([label, value, band]) => (
           <div key={label} className="flex items-baseline justify-between gap-2">
             <dt className="sf-muted">{label}</dt>

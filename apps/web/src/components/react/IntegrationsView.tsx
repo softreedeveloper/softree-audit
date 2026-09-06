@@ -162,14 +162,14 @@ function ProjectConnection({
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">{project.name}</h2>
-          <p className="sf-muted text-xs">
+          <p className="sf-muted break-words text-xs">
             {status.google_account_email ?? 'Sin cuenta conectada'}
             {status.property_url ? ` · ${status.property_url}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge tone={STATUS_TONE[status.status]}>{STATUS_LABEL[status.status]}</Badge>
           {status.status === 'not_connected' ? (
             <button
@@ -222,7 +222,7 @@ function ProjectConnection({
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="font-medium">Propiedad del proyecto</span>
               <select
-                className="sf-input max-w-lg"
+                className="sf-input w-full max-w-lg"
                 value={status.property_url ?? ''}
                 disabled={busy}
                 onChange={(event) =>

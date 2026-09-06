@@ -45,7 +45,7 @@ export default function ScoreCard({ scores }: { scores: ScanScores }) {
 
   return (
     <Card>
-      <div className="flex flex-wrap items-start gap-6">
+      <div className="flex flex-wrap items-start gap-4 sm:gap-6">
         <div className="flex items-center gap-4">
           <Dial value={overall} color={color} />
           <div>
@@ -59,7 +59,7 @@ export default function ScoreCard({ scores }: { scores: ScanScores }) {
           </div>
         </div>
 
-        <dl className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="grid w-full min-w-0 flex-1 grid-cols-2 gap-3 lg:grid-cols-3">
           {categories.map((entry) => {
             const value = toNumber(entry.value);
             return (
@@ -86,7 +86,7 @@ export default function ScoreCard({ scores }: { scores: ScanScores }) {
           <p className="sf-muted mb-2 text-xs uppercase tracking-wide">
             Google Lighthouse (puntuación oficial de Google)
           </p>
-          <dl className="grid gap-3 sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {scores.google.map((entry) => (
               <div key={entry.category}>
                 <dt className="sf-muted text-xs">
