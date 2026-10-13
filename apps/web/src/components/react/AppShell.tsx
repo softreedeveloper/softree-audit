@@ -139,13 +139,12 @@ const NAV: NavGroup[] = [
 function Brand() {
   return (
     <a href="/dashboard" className="flex min-w-0 items-center gap-3 px-2">
-      <span
-        className="grid size-9 shrink-0 place-items-center rounded-xl text-base font-bold"
-        style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-contrast)' }}
+      <img
+        src="/brand/softree-isotipo.png"
+        alt=""
         aria-hidden="true"
-      >
-        S
-      </span>
+        className="size-9 shrink-0 object-contain"
+      />
       <span className="min-w-0 leading-tight">
         <span className="block text-sm font-semibold tracking-[0.18em]">SOFTREE</span>
         <span className="sf-label block">Audit platform</span>

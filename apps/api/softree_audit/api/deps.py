@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from softree_audit.auth.service import AuthService
 from softree_audit.core.config import Settings
 from softree_audit.core.errors import AuthenticationError
+from softree_audit.core.public_url import public_origin
 from softree_audit.core.rate_limit import RateLimiter
 from softree_audit.core.redis import RedisClient
 from softree_audit.core.security import decode_token
@@ -72,6 +73,19 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def request_origin(
+    request: Request, settings: Annotated[Settings, Depends(get_app_settings)]
+) -> str:
+    """Origen público visto por el navegador, con el mismo criterio de
+    confianza en el proxy que `client_ip`."""
+    headers = request.headers
+    return public_origin(
+        settings,
+        host=headers.get("x-forwarded-host") or headers.get("host"),
+        scheme=headers.get("x-forwarded-proto") or request.url.scheme,
+    )
+
+
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     auth: Annotated[AuthService, Depends(get_auth_service)],
@@ -92,3 +106,4 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 DbSession = Annotated[AsyncSession, Depends(get_session)]
 AppSettings = Annotated[Settings, Depends(get_app_settings)]
 Limiter = Annotated[RateLimiter, Depends(get_rate_limiter)]
+PublicOrigin = Annotated[str, Depends(request_origin)]

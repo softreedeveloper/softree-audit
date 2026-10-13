@@ -21,7 +21,10 @@ from softree_audit.core.errors import AppError, NotFoundError
 from softree_audit.core.logging import get_logger
 from softree_audit.core.redis import RedisClient
 from softree_audit.models import ConnectionStatus, Project, SearchConsoleConnection
-from softree_audit.services.search_console.client import SearchConsoleClient
+from softree_audit.services.search_console.client import (
+    SearchConsoleClient,
+    SearchConsoleError,
+)
 from softree_audit.services.search_console.oauth import (
     OAuthCredentials,
     OAuthError,
@@ -65,6 +68,12 @@ class NotConnectedError(AppError):
     message = "El proyecto no tiene una conexión con Search Console."
 
 
+class SearchConsoleUnavailableError(AppError):
+    status_code = 502
+    code = "search_console_error"
+    message = "Search Console no respondió correctamente."
+
+
 class GoogleIntegrationService:
     def __init__(
         self,
@@ -72,11 +81,16 @@ class GoogleIntegrationService:
         redis: RedisClient,
         settings: Settings,
         owner_id: uuid.UUID,
+        *,
+        redirect_uri: str | None = None,
     ) -> None:
         self._session = session
         self._redis = redis
         self._settings = settings
         self._owner_id = owner_id
+        # Lo resuelve la capa HTTP a partir de la petición. Renovar un token no
+        # lo necesita, así que el worker puede omitirlo.
+        self._redirect_uri = redirect_uri
         self._box = SecretBox(settings.secret_key, settings.secret_key_previous)
 
     @property
@@ -84,7 +98,7 @@ class GoogleIntegrationService:
         return OAuthCredentials(
             client_id=self._settings.google_client_id or "",
             client_secret=self._settings.google_client_secret or "",
-            redirect_uri=self._settings.google_redirect_uri,
+            redirect_uri=self._redirect_uri or self._settings.google_redirect_uri or "",
         )
 
     # ── Conexión ───────────────────────────────────────────────────────────
@@ -197,7 +211,16 @@ class GoogleIntegrationService:
     async def list_properties(self, project_id: uuid.UUID) -> list[dict[str, str]]:
         access_token = await self.access_token_for(project_id)
         async with SearchConsoleClient(access_token) as client:
-            return await client.list_properties()
+            try:
+                return await client.list_properties()
+            except SearchConsoleError as exc:
+                # Antes esto terminaba en un 500 sin explicación. El motivo
+                # (API no habilitada, sin permiso, cuota) es lo que el usuario
+                # necesita para arreglarlo.
+                logger.warning(
+                    "google.properties_failed", project_id=str(project_id), reason=exc.reason
+                )
+                raise SearchConsoleUnavailableError(str(exc)) from exc
 
     async def select_property(
         self, project_id: uuid.UUID, property_url: str

@@ -27,8 +27,30 @@ const SKIP_REASON: Record<string, string> = {
     'La cuenta está conectada pero no se ha elegido la propiedad del proyecto.',
   quota_exceeded: 'Se superó el límite de consultas de Search Console.',
   invalid_grant: 'El acceso a Google fue revocado. Vuelva a conectar la cuenta.',
+  acceso_revocado:
+    'Google revocó el acceso de la cuenta conectada. Si la pantalla de consentimiento está en modo «Testing», los permisos caducan a los 7 días. Vuelva a conectar la cuenta.',
+  conexion_con_error:
+    'La credencial guardada no pudo descifrarse. Vuelva a conectar la cuenta.',
+  google_no_configurado:
+    'La integración con Google no está configurada en este entorno: faltan GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET.',
+  renovacion_fallida:
+    'No fue posible renovar el acceso a Google al iniciar la auditoría. Revise la conexión en Integraciones.',
+  unauthorized: 'Google rechazó el token de acceso. Vuelva a conectar la cuenta.',
+  access_denied:
+    'Google denegó el acceso a la propiedad. Compruebe que la API de Search Console está habilitada en el proyecto de Google Cloud y que la cuenta tiene permiso sobre la propiedad.',
+  unreachable: 'No fue posible contactar con Search Console desde el servidor.',
   cancelled: 'La auditoría se canceló antes de terminar este módulo.',
 };
+
+/** Motivos que se resuelven desde Integraciones. */
+const RECONNECT_REASONS = new Set([
+  'acceso_revocado',
+  'conexion_con_error',
+  'renovacion_fallida',
+  'unauthorized',
+  'invalid_grant',
+  'sin_propiedad_seleccionada',
+]);
 
 export default function SearchConsoleView({ scanId }: { scanId: string }) {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -73,6 +95,11 @@ export default function SearchConsoleView({ scanId }: { scanId: string }) {
         <p className="sf-muted mt-2 text-sm">
           {reason ? (SKIP_REASON[reason] ?? reason) : 'Sin datos de Search Console.'}
         </p>
+        {reason && RECONNECT_REASONS.has(reason) ? (
+          <a className="sf-btn sf-btn-ghost mt-3" href="/integrations">
+            Ir a Integraciones
+          </a>
+        ) : null}
       </Card>
     );
   }

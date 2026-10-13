@@ -32,6 +32,10 @@ class ScanContext:
     # `(access_token, property_url)` de Search Console, ya resueltos por el
     # orquestador. `None` significa que el proyecto no tiene conexión.
     search_console: tuple[str, str | None] | None = None
+    # Por qué no hay credencial, cuando `search_console` es `None`: el módulo
+    # lo informa tal cual para que la interfaz no diga «no conectado» cuando en
+    # realidad el acceso fue revocado o el token no pudo renovarse.
+    search_console_skip_reason: str | None = None
     # Salidas de módulos anteriores, por nombre de módulo.
     artifacts: dict[str, Any] = field(default_factory=dict)
 

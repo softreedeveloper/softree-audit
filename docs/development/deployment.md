@@ -71,9 +71,12 @@ La aplicación queda en `http://<host>:8080`, o en el puerto que indique
 | `SSRF_ALLOW_PRIVATE_NETWORKS` | Ausente o `false`. En `true` la plataforma podría escanear la red interna del servidor |
 
 Opcionales: `PAGESPEED_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
-`GOOGLE_REDIRECT_URI`, `AI_API_URL`, `AI_API_KEY`. Sin ellas los módulos
-correspondientes quedan `failed` o `skipped` y el resto de la auditoría
-continúa.
+`AI_API_URL`, `AI_API_KEY`. Sin ellas los módulos correspondientes quedan
+`failed` o `skipped` y el resto de la auditoría continúa.
+
+`APP_URL` y `GOOGLE_REDIRECT_URI` no hace falta definirlos: la API deduce el
+origen público de cada petición (`Host` y `X-Forwarded-Proto`, que nginx y
+Traefik rellenan). Solo sirven para forzar un valor distinto.
 
 ## Despliegue en Dokploy
 
@@ -104,14 +107,18 @@ En la pestaña **Environment**, pegar las variables de la tabla anterior.
 Dokploy las inyecta como `.env` del compose. No subir ese archivo al
 repositorio: `.gitignore` ya lo excluye.
 
-`GOOGLE_REDIRECT_URI` debe apuntar al dominio público:
+Para Search Console solo hacen falta `GOOGLE_CLIENT_ID` y
+`GOOGLE_CLIENT_SECRET`. El URI de callback que la API envía a Google se deduce
+del dominio; con `audit.softree.mx` es
 
 ```
-https://<dominio>/api/v1/integrations/google/callback
+https://audit.softree.mx/api/v1/integrations/google/callback
 ```
 
-y registrarse igual en Google Cloud Console, o la conexión con Search Console
-fallará con `redirect_uri_mismatch`.
+y debe estar registrado tal cual en Google Cloud Console (**Credenciales → ID
+de cliente OAuth → URIs de redirección autorizados**), o la conexión fallará
+con `redirect_uri_mismatch`. La pantalla **Configuración** de la aplicación
+muestra el URI exacto que se enviará desde ese dominio.
 
 ### 4. Dominio
 

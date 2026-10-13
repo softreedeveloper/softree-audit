@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from softree_audit.api.deps import AppSettings, CurrentUser
+from softree_audit.api.deps import AppSettings, CurrentUser, PublicOrigin
+from softree_audit.core.public_url import google_redirect_uri
 from softree_audit.models.site import (
     MAX_CONCURRENCY,
     MAX_DEPTH_LIMIT,
@@ -28,7 +29,9 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 @router.get("", response_model=InstanceSettings, summary="Configuración de la instancia")
-async def instance_settings(user: CurrentUser, settings: AppSettings) -> InstanceSettings:
+async def instance_settings(
+    user: CurrentUser, settings: AppSettings, origin: PublicOrigin
+) -> InstanceSettings:
     """Configuración efectiva. Nunca devuelve secretos, solo si están presentes."""
     weights = settings.effective_scoring_weights
 
@@ -96,11 +99,12 @@ async def instance_settings(user: CurrentUser, settings: AppSettings) -> Instanc
                     if settings.google_client_id and settings.google_client_secret
                     else "Defina GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET para poder conectar."
                 ),
-                variables=["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI"],
+                variables=["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
                 # Un URI que no coincida con el registrado en Google produce
                 # `redirect_uri_mismatch` antes de mostrar el consentimiento, y
-                # el mensaje de Google no dice cuál esperaba.
-                callback_url=settings.google_redirect_uri,
+                # el mensaje de Google no dice cuál esperaba. Se muestra el que
+                # realmente se enviará desde este origen.
+                callback_url=google_redirect_uri(settings, origin),
             ),
         ],
         scope_defaults=ScopeDefaults(

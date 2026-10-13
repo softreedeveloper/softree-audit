@@ -266,6 +266,18 @@ export interface SeoResult {
   created_at: string;
 }
 
+export interface SeoSummary {
+  scan_id: string;
+  scan_status: string;
+  finished_at: string | null;
+  module_status: string;
+  module_detail: Record<string, unknown> | null;
+  module_error: string | null;
+  result: SeoResult | null;
+  findings_by_severity: SeverityCounts;
+  top_rules: { rule_id: string | null; title: string; severity: Severity; count: number }[];
+}
+
 export const SEVERITY_ORDER: Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
 
 export const SEVERITY_LABEL: Record<Severity, string> = {
