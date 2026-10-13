@@ -10,7 +10,10 @@ import json
 from typing import Any
 from urllib.parse import urljoin, urlsplit
 
-from selectolax.parser import HTMLParser
+# Backend Lexbor: el backend Modest (`selectolax.parser`) quedó retirado en
+# selectolax 1.0 y su importación lanza `ImportError`, lo que impedía arrancar
+# la API y el worker al reconstruir la imagen.
+from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
 from softree_audit.services.common.urls import matches_domain
 from softree_audit.services.crawler.models import Link, PageData

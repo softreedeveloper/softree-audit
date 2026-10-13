@@ -283,7 +283,10 @@ class SearchConsoleModule:
 
     async def run(self, context: ScanContext) -> ModuleResult:
         if context.search_console is None:
-            return ModuleResult(skipped=True, skip_reason="no_conectado")
+            return ModuleResult(
+                skipped=True,
+                skip_reason=context.search_console_skip_reason or "no_conectado",
+            )
 
         access_token, property_url = context.search_console
         if not property_url:

@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   findings as findingsApi,
-  request,
   performance as performanceApi,
   scans as api,
   security as securityApi,
+  seo as seoApi,
 } from '../../lib/api';
 import {
   TERMINAL_STATUSES,
@@ -16,7 +16,7 @@ import {
   type ScanDetail,
   type ScanScores,
   type SecuritySummary,
-  type SeoResult,
+  type SeoSummary as SeoSummaryData,
   type SeverityCounts,
 } from '../../lib/types';
 import { EmptyState, ErrorState, LoadingState, PartialState } from './UiStates';
@@ -33,11 +33,33 @@ import { Badge, Card, FormError, describeError } from './ui';
 
 const POLL_INTERVAL_MS = 2000;
 
+const SEO_SKIP_REASON: Record<string, string> = {
+  sin_paginas_rastreadas:
+    'El crawler no obtuvo ninguna página, así que no hubo nada que analizar. Revise el alcance del sitio y que el dominio responda.',
+  cancelled: 'La auditoría se canceló antes de llegar a este módulo.',
+};
+
+/** Explica por qué un scan terminado no tiene resultado SEO. */
+function describeSeoAbsence(summary: SeoSummaryData | null): string {
+  if (!summary || summary.module_status === 'no_ejecutado') {
+    return 'Esta auditoría no incluyó el módulo SEO. Lo ejecutan las auditorías completas y las de tipo SEO.';
+  }
+  const detail = (summary.module_detail ?? {}) as Record<string, unknown>;
+  const reason = typeof detail.reason === 'string' ? detail.reason : null;
+  if (summary.module_status === 'failed') {
+    return `El módulo SEO falló${summary.module_error ? `: ${summary.module_error}` : '.'}`;
+  }
+  if (summary.module_status === 'skipped') {
+    return reason ? (SEO_SKIP_REASON[reason] ?? `Módulo omitido: ${reason}.`) : 'El módulo SEO se omitió.';
+  }
+  return `El módulo SEO no llegó a completarse (estado: ${summary.module_status}).`;
+}
+
 export default function ScanDetailView({ scanId }: { scanId: string }) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'missing'>('loading');
   const [scan, setScan] = useState<ScanDetail | null>(null);
   const [pages, setPages] = useState<CrawledPage[]>([]);
-  const [seo, setSeo] = useState<SeoResult | null>(null);
+  const [seo, setSeo] = useState<SeoSummaryData | null>(null);
   const [security, setSecurity] = useState<SecuritySummary | null>(null);
   const [performance, setPerformance] = useState<PerformanceSummary | null>(null);
   const [counts, setCounts] = useState<SeverityCounts | null>(null);
@@ -71,21 +93,21 @@ export default function ScanDetailView({ scanId }: { scanId: string }) {
           }
           setCounts(await findingsApi.severityCounts(scanId));
           setScores(await api.scores(scanId));
+          // Cada pestaña muestra lo que produjo este scan, no el último del
+          // sitio: si el scan más reciente fuera de otro tipo, la vista diría
+          // «sin resultado» sobre un scan que sí lo tiene.
           try {
-            const summary = await request<{ result: SeoResult | null }>(
-              `/sites/${detail.site_id}/seo`,
-            );
-            setSeo(summary.result);
+            setSeo(await seoApi.forScan(scanId));
           } catch {
-            // El sitio puede no tener todavía un resultado SEO; no es un error.
+            // Un scan sin módulo SEO no es un error de la vista.
           }
           try {
-            setSecurity(await securityApi.forSite(detail.site_id));
+            setSecurity(await securityApi.forScan(scanId));
           } catch {
-            // Igual con seguridad: su ausencia no es un fallo de la vista.
+            // Igual con seguridad.
           }
           try {
-            setPerformance(await performanceApi.forSite(detail.site_id));
+            setPerformance(await performanceApi.forScan(scanId));
           } catch {
             // Y con rendimiento.
           }
@@ -261,13 +283,10 @@ export default function ScanDetailView({ scanId }: { scanId: string }) {
           ) : null}
 
           {tab === 'seo' ? (
-            seo ? (
-              <SeoSummary result={seo} />
+            seo?.result ? (
+              <SeoSummary result={seo.result} />
             ) : (
-              <EmptyState
-                title="Sin resultado SEO"
-                description="Esta auditoría no incluyó el módulo SEO o no llegó a completarlo."
-              />
+              <EmptyState title="Sin resultado SEO" description={describeSeoAbsence(seo)} />
             )
           ) : null}
 

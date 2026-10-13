@@ -173,8 +173,29 @@ class FindingService:
         return counts
 
     async def site_seo_summary(self, site_id: uuid.UUID) -> SiteSeoSummary:
-        """Último scan terminado del sitio con resultado SEO."""
-        scan = await self._last_finished_scan(site_id)
+        """Resultado SEO del último scan terminado del sitio."""
+        return await self._seo_summary(await self._last_finished_scan(site_id))
+
+    async def scan_seo_summary(self, scan_id: uuid.UUID) -> SiteSeoSummary:
+        """Resultado SEO de un scan concreto.
+
+        La vista de un scan debe mostrar lo que ese scan produjo. Consultar «el
+        último del sitio» mostraba un resultado vacío cuando el scan más
+        reciente era de otro tipo, aunque el scan abierto sí tuviera datos.
+        """
+        return await self._seo_summary(await self._owned_scan(scan_id))
+
+    async def _module_run(self, scan_id: uuid.UUID, module: ModuleName) -> ScanModuleRun | None:
+        return (
+            await self._session.execute(
+                sa.select(ScanModuleRun).where(
+                    ScanModuleRun.scan_id == scan_id, ScanModuleRun.module == module
+                )
+            )
+        ).scalar_one_or_none()
+
+    async def _seo_summary(self, scan: Scan) -> SiteSeoSummary:
+        module = await self._module_run(scan.id, ModuleName.SEO)
 
         result = (
             await self._session.execute(sa.select(SEOResult).where(SEOResult.scan_id == scan.id))
@@ -196,6 +217,9 @@ class FindingService:
             scan_id=scan.id,
             scan_status=scan.status.value,
             finished_at=scan.finished_at,
+            module_status=module.status.value if module is not None else "no_ejecutado",
+            module_detail=module.detail if module is not None else None,
+            module_error=module.error if module is not None else None,
             result=SeoResultRead.model_validate(result) if result is not None else None,
             findings_by_severity=await self.severity_counts(scan_id=scan.id),
             top_rules=[
@@ -235,18 +259,28 @@ class FindingService:
             raise NotFoundError("El sitio todavía no tiene auditorías terminadas.")
         return scan
 
-    async def site_security_summary(self, site_id: uuid.UUID) -> SiteSecuritySummary:
-        """Resultado de seguridad del último scan terminado del sitio."""
-        scan = await self._last_finished_scan(site_id)
-
-        module = (
+    async def _owned_scan(self, scan_id: uuid.UUID) -> Scan:
+        scan = (
             await self._session.execute(
-                sa.select(ScanModuleRun).where(
-                    ScanModuleRun.scan_id == scan.id,
-                    ScanModuleRun.module == ModuleName.SECURITY,
-                )
+                sa.select(Scan)
+                .join(Site, Site.id == Scan.site_id)
+                .join(Project, Project.id == Site.project_id)
+                .where(Scan.id == scan_id, self._owned())
             )
         ).scalar_one_or_none()
+        if scan is None:
+            raise NotFoundError("La auditoría no existe.")
+        return scan
+
+    async def site_security_summary(self, site_id: uuid.UUID) -> SiteSecuritySummary:
+        """Resultado de seguridad del último scan terminado del sitio."""
+        return await self._security_summary(await self._last_finished_scan(site_id))
+
+    async def scan_security_summary(self, scan_id: uuid.UUID) -> SiteSecuritySummary:
+        return await self._security_summary(await self._owned_scan(scan_id))
+
+    async def _security_summary(self, scan: Scan) -> SiteSecuritySummary:
+        module = await self._module_run(scan.id, ModuleName.SECURITY)
 
         top = await self._session.execute(
             sa.select(Finding)
@@ -283,21 +317,16 @@ class FindingService:
         )
 
     async def site_performance_summary(self, site_id: uuid.UUID) -> SitePerformanceSummary:
-        """Rendimiento del último scan terminado del sitio.
+        """Rendimiento del último scan terminado del sitio."""
+        return await self._performance_summary(await self._last_finished_scan(site_id))
 
-        Devuelve el Google Score sin transformar; el Softree Score es otra cosa
-        y se calcula aparte (§27).
-        """
-        scan = await self._last_finished_scan(site_id)
+    async def scan_performance_summary(self, scan_id: uuid.UUID) -> SitePerformanceSummary:
+        return await self._performance_summary(await self._owned_scan(scan_id))
 
-        module = (
-            await self._session.execute(
-                sa.select(ScanModuleRun).where(
-                    ScanModuleRun.scan_id == scan.id,
-                    ScanModuleRun.module == ModuleName.PERFORMANCE,
-                )
-            )
-        ).scalar_one_or_none()
+    async def _performance_summary(self, scan: Scan) -> SitePerformanceSummary:
+        """Devuelve el Google Score sin transformar; el Softree Score es otra
+        cosa y se calcula aparte (§27)."""
+        module = await self._module_run(scan.id, ModuleName.PERFORMANCE)
 
         results = await self._session.execute(
             sa.select(PerformanceResult)

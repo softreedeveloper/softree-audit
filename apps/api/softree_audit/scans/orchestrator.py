@@ -131,6 +131,7 @@ class ScanOrchestrator:
             await self._create_module_rows(session, scan_id, module_names)
             await session.commit()
 
+        search_console, search_console_reason = await self._search_console_credentials(scan.site_id)
         context = ScanContext(
             scan_id=scan_id,
             site_id=scan.site_id,
@@ -139,7 +140,8 @@ class ScanOrchestrator:
             scope=scope,
             is_cancelled=lambda: cancellation.is_cancelled(self._redis, scan_id),
             redis=self._redis,
-            search_console=await self._search_console_credentials(scan.site_id),
+            search_console=search_console,
+            search_console_skip_reason=search_console_reason,
         )
 
         registry = build_registry(self._settings)
@@ -437,14 +439,19 @@ class ScanOrchestrator:
 
     async def _search_console_credentials(
         self, site_id: uuid.UUID
-    ) -> tuple[str, str | None] | None:
+    ) -> tuple[tuple[str, str | None] | None, str | None]:
         """Resuelve la credencial de Search Console del proyecto del sitio.
 
         Se hace aquí y no en el módulo porque exige acceso a base de datos, que
-        los módulos no tienen por contrato. Si no hay conexión, o si Google la
-        rechaza, se devuelve `None` y el módulo se limita a omitirse.
+        los módulos no tienen por contrato. Devuelve `(credencial, motivo)`: si
+        no hay credencial, el motivo dice por qué, y el módulo lo registra tal
+        cual. Decir «no conectado» cuando el acceso fue revocado llevaría al
+        usuario a buscar el problema donde no está.
         """
-        from softree_audit.integrations.google import GoogleIntegrationService
+        from softree_audit.integrations.google import (
+            ConnectionRevokedError,
+            GoogleIntegrationService,
+        )
         from softree_audit.models import ConnectionStatus
 
         async with self._session_factory() as session:
@@ -458,25 +465,35 @@ class ScanOrchestrator:
             ).first()
 
             if row is None:
-                return None
+                return None, "no_conectado"
             connection, owner_id = row
+            if connection.status is ConnectionStatus.REVOKED:
+                return None, "acceso_revocado"
+            if connection.status is ConnectionStatus.ERROR:
+                return None, "conexion_con_error"
             if connection.status is not ConnectionStatus.CONNECTED:
-                return None
+                return None, "no_conectado"
 
             service = GoogleIntegrationService(session, self._redis, self._settings, owner_id)
+            if not service.credentials.is_configured:
+                return None, "google_no_configurado"
             try:
                 access_token = await service.access_token_for(connection.project_id)
+            except ConnectionRevokedError:
+                await session.commit()
+                logger.info("search_console.credentials_revoked", site_id=str(site_id))
+                return None, "acceso_revocado"
             except Exception as exc:
                 logger.info(
                     "search_console.credentials_unavailable",
                     site_id=str(site_id),
-                    error=type(exc).__name__,
+                    error=f"{type(exc).__name__}: {exc}",
                 )
                 await session.commit()
-                return None
+                return None, "renovacion_fallida"
             await session.commit()
 
-        return access_token, connection.property_url
+        return (access_token, connection.property_url), None
 
     async def _persist_search_console(
         self, scan_id: uuid.UUID, analysis: SearchConsoleAnalysis

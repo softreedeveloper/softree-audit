@@ -123,17 +123,17 @@ Con clave, 25 000 consultas diarias.
    web**. En **URIs de redirección autorizados**, exactamente:
 
    ```
-   http://localhost:8000/api/v1/integrations/google/callback
+   http://localhost:4321/api/v1/integrations/google/callback
+   https://audit.softree.mx/api/v1/integrations/google/callback
    ```
 
-   Es el endpoint de callback de la API. Al terminar, la API redirige al
-   frontend configurado en `APP_URL`. En producción, con API e interfaz en el
-   mismo dominio, es
-   `https://<dominio>/api/v1/integrations/google/callback`.
+   El primero es para desarrollo (el servidor de Astro hace proxy de `/api`) y
+   el segundo para producción. La API deduce cuál enviar a partir del origen de
+   cada petición, y al terminar devuelve al navegador a ese mismo origen. La
+   pantalla **Configuración** muestra el URI exacto que se está enviando.
 
-4. `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y `GOOGLE_REDIRECT_URI` en `.env`.
-   El valor de `GOOGLE_REDIRECT_URI` debe coincidir carácter por carácter con el
-   registrado en Google.
+4. `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en `.env`. `GOOGLE_REDIRECT_URI`
+   y `APP_URL` solo se definen para forzar un valor distinto del deducido.
 
 Dos condiciones más para que devuelva datos: la propiedad debe estar verificada
 en Search Console con esa misma cuenta, y en modo *Testing* el refresh token

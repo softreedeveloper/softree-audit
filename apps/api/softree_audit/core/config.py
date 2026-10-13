@@ -40,7 +40,10 @@ class Settings(BaseSettings):
 
     # ── Entorno ────────────────────────────────────────────────────────────
     app_env: Environment = "development"
-    app_url: str = "http://localhost:4321"
+    # Origen público de la interfaz. Si no se define, la API lo deduce de cada
+    # petición (`Host` y `X-Forwarded-Proto`), así que el mismo despliegue
+    # sirve en local, stage y producción sin tocar variables.
+    app_url: str | None = None
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
     api_prefix: str = "/api/v1"
@@ -87,7 +90,10 @@ class Settings(BaseSettings):
 
     google_client_id: str | None = None
     google_client_secret: str | None = None
-    google_redirect_uri: str = "http://localhost:8000/api/v1/integrations/google/callback"
+    # Si no se define, es `<origen público>/api/v1/integrations/google/callback`.
+    # Solo hace falta cuando Google deba volver a un origen distinto del que
+    # sirve la interfaz.
+    google_redirect_uri: str | None = None
 
     # ── Scoring ────────────────────────────────────────────────────────────
     scoring_weights: Annotated[dict[str, float], NoDecode] = Field(

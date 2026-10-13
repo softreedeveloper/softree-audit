@@ -30,7 +30,14 @@ from softree_audit.scans.queue import enqueue_scan
 from softree_audit.scans.service import ScanService
 from softree_audit.schemas.common import ErrorResponse, Page
 from softree_audit.schemas.comparison import ComparisonResponse
-from softree_audit.schemas.finding import FindingRead, ScanScoresResponse, SeverityCounts
+from softree_audit.schemas.finding import (
+    FindingRead,
+    ScanScoresResponse,
+    SeverityCounts,
+    SitePerformanceSummary,
+    SiteSecuritySummary,
+    SiteSeoSummary,
+)
 from softree_audit.schemas.integration import (
     ScanSearchConsoleResponse,
     SearchConsoleMetricRead,
@@ -237,6 +244,40 @@ async def scan_severity_counts(
 ) -> SeverityCounts:
     await service.get(scan_id)
     return await findings.severity_counts(scan_id=scan_id)
+
+
+@router.get(
+    "/{scan_id}/seo",
+    response_model=SiteSeoSummary,
+    summary="Resultado SEO de la auditoría",
+    responses=NOT_FOUND,
+)
+async def scan_seo(scan_id: uuid.UUID, findings: FindingServiceDep) -> SiteSeoSummary:
+    """Lo que este scan produjo, no el último del sitio: la vista de un scan
+    tiene que ser fiel a ese scan."""
+    return await findings.scan_seo_summary(scan_id)
+
+
+@router.get(
+    "/{scan_id}/security",
+    response_model=SiteSecuritySummary,
+    summary="Resultado de seguridad de la auditoría",
+    responses=NOT_FOUND,
+)
+async def scan_security(scan_id: uuid.UUID, findings: FindingServiceDep) -> SiteSecuritySummary:
+    return await findings.scan_security_summary(scan_id)
+
+
+@router.get(
+    "/{scan_id}/performance",
+    response_model=SitePerformanceSummary,
+    summary="Resultado de rendimiento de la auditoría",
+    responses=NOT_FOUND,
+)
+async def scan_performance(
+    scan_id: uuid.UUID, findings: FindingServiceDep
+) -> SitePerformanceSummary:
+    return await findings.scan_performance_summary(scan_id)
 
 
 @router.get(

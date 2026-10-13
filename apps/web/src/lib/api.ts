@@ -32,6 +32,7 @@ import type {
   ScanScores,
   ScanSearchConsole,
   SecuritySummary,
+  SeoSummary,
   SeverityCounts,
   Site,
   SiteDetail,
@@ -271,14 +272,23 @@ export const scans = {
     request<Comparison>(`/scans/${id}/comparison?against=${against}`),
 };
 
+export const seo = {
+  forSite: (siteId: string): Promise<SeoSummary> => request<SeoSummary>(`/sites/${siteId}/seo`),
+  forScan: (scanId: string): Promise<SeoSummary> => request<SeoSummary>(`/scans/${scanId}/seo`),
+};
+
 export const security = {
   forSite: (siteId: string): Promise<SecuritySummary> =>
     request<SecuritySummary>(`/sites/${siteId}/security`),
+  forScan: (scanId: string): Promise<SecuritySummary> =>
+    request<SecuritySummary>(`/scans/${scanId}/security`),
 };
 
 export const performance = {
   forSite: (siteId: string): Promise<PerformanceSummary> =>
     request<PerformanceSummary>(`/sites/${siteId}/performance`),
+  forScan: (scanId: string): Promise<PerformanceSummary> =>
+    request<PerformanceSummary>(`/scans/${scanId}/performance`),
 };
 
 export const findings = {

@@ -9,9 +9,10 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import RedirectResponse
 
-from softree_audit.api.deps import AppSettings, CurrentUser, DbSession
+from softree_audit.api.deps import AppSettings, CurrentUser, DbSession, PublicOrigin
 from softree_audit.core.errors import AppError
 from softree_audit.core.logging import get_logger
+from softree_audit.core.public_url import google_redirect_uri
 from softree_audit.core.redis import RedisClient
 from softree_audit.integrations.google import GoogleIntegrationService
 from softree_audit.schemas.common import ErrorResponse
@@ -31,9 +32,9 @@ router = APIRouter(prefix="/integrations/google", tags=["integrations"])
 CALLBACK_REDIRECT = "/integrations"
 
 
-def _interface_url(settings: AppSettings, query: str) -> str:
-    """Construye el retorno al frontend desde el origen configurado."""
-    return f"{settings.app_url.rstrip('/')}{CALLBACK_REDIRECT}?{query}"
+def _interface_url(origin: str, query: str) -> str:
+    """Retorno al frontend, en el mismo origen por el que llegó la petición."""
+    return f"{origin}{CALLBACK_REDIRECT}?{query}"
 
 
 def get_redis_client(request: Request) -> RedisClient:
@@ -45,9 +46,16 @@ def get_service(
     session: DbSession,
     user: CurrentUser,
     settings: AppSettings,
+    origin: PublicOrigin,
     redis: Annotated[RedisClient, Depends(get_redis_client)],
 ) -> GoogleIntegrationService:
-    return GoogleIntegrationService(session, redis, settings, user.id)
+    return GoogleIntegrationService(
+        session,
+        redis,
+        settings,
+        user.id,
+        redirect_uri=google_redirect_uri(settings, origin),
+    )
 
 
 ServiceDep = Annotated[GoogleIntegrationService, Depends(get_service)]
@@ -84,6 +92,7 @@ async def connect(payload: GoogleConnectRequest, service: ServiceDep) -> GoogleC
 async def callback(
     session: DbSession,
     settings: AppSettings,
+    origin: PublicOrigin,
     redis: Annotated[RedisClient, Depends(get_redis_client)],
     code: Annotated[str | None, Query()] = None,
     state: Annotated[str | None, Query()] = None,
@@ -102,31 +111,36 @@ async def callback(
     la interfaz los traduce.
     """
     if error or not code or not state:
-        return _callback_error(settings, error or "missing_code")
+        return _callback_error(origin, error or "missing_code")
 
     owner_id = await GoogleIntegrationService.resolve_state_owner(redis, state)
     if owner_id is None:
         logger.warning("google.callback_unknown_state")
-        return _callback_error(settings, "invalid_state")
+        return _callback_error(origin, "invalid_state")
 
-    service = GoogleIntegrationService(session, redis, settings, owner_id)
+    # El canje exige el mismo redirect_uri que se envió al pedir el código.
+    # Google llamó a este endpoint con él, así que el origen de esta petición
+    # es, por construcción, el correcto.
+    service = GoogleIntegrationService(
+        session, redis, settings, owner_id, redirect_uri=google_redirect_uri(settings, origin)
+    )
     try:
         connection = await service.complete_connection(code, state)
     except AppError as exc:
         # El navegador está aquí, no el cliente de la API: un JSON de error
         # dejaría al usuario en una página en blanco.
         logger.warning("google.callback_failed", reason=exc.code)
-        return _callback_error(settings, exc.code)
+        return _callback_error(origin, exc.code)
 
     return RedirectResponse(
-        _interface_url(settings, f"google=connected&project_id={connection.project_id}"),
+        _interface_url(origin, f"google=connected&project_id={connection.project_id}"),
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
 
-def _callback_error(settings: AppSettings, reason: str) -> RedirectResponse:
+def _callback_error(origin: str, reason: str) -> RedirectResponse:
     return RedirectResponse(
-        _interface_url(settings, f"google=error&reason={quote(reason, safe='')}"),
+        _interface_url(origin, f"google=error&reason={quote(reason, safe='')}"),
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -138,6 +152,10 @@ def _callback_error(settings: AppSettings, reason: str) -> RedirectResponse:
     responses={
         404: {"model": ErrorResponse, "description": "El proyecto no existe o no está conectado"},
         409: {"model": ErrorResponse, "description": "El acceso a Google fue revocado"},
+        502: {
+            "model": ErrorResponse,
+            "description": "Search Console rechazó la consulta (API no habilitada, sin permiso)",
+        },
     },
 )
 async def properties(project_id: uuid.UUID, service: ServiceDep) -> list[GoogleProperty]:

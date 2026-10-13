@@ -12,10 +12,7 @@ import httpx
 from softree_audit.core.logging import get_logger
 from softree_audit.models.enums import SearchConsoleDimension, SearchConsolePeriod
 from softree_audit.services.common.retry import with_retry
-from softree_audit.services.search_console.oauth import (
-    OAuthError,
-    RefreshTokenRevokedError,
-)
+from softree_audit.services.search_console.oauth import OAuthError
 
 logger = get_logger(__name__)
 
@@ -33,6 +30,29 @@ class SearchConsoleError(Exception):
     def __init__(self, message: str, *, reason: str) -> None:
         super().__init__(message)
         self.reason = reason
+
+
+class SearchConsoleAccessDeniedError(SearchConsoleError):
+    """Google rechazó la credencial o el acceso a la propiedad (401 o 403).
+
+    Un 403 casi siempre es una de dos cosas: la API de Search Console no está
+    habilitada en el proyecto de Google Cloud, o la cuenta conectada no tiene
+    permiso sobre la propiedad. El mensaje de Google lo distingue.
+    """
+
+    def __init__(self, status_code: int, google_message: str | None) -> None:
+        reason = "unauthorized" if status_code == 401 else "access_denied"
+        hint = (
+            "El token de acceso no es válido. Vuelva a conectar la cuenta."
+            if status_code == 401
+            else (
+                "Compruebe que la API de Search Console está habilitada en el proyecto de "
+                "Google Cloud y que la cuenta conectada tiene permiso sobre la propiedad."
+            )
+        )
+        detail = f" Google dijo: {google_message}" if google_message else ""
+        super().__init__(f"Google denegó el acceso ({status_code}). {hint}{detail}", reason=reason)
+        self.status_code = status_code
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,8 +179,8 @@ class SearchConsoleClient:
             ) from exc
 
         if response.status_code in (401, 403):
-            raise RefreshTokenRevokedError(
-                "Google denegó el acceso a la propiedad. Vuelva a conectar la cuenta."
+            raise SearchConsoleAccessDeniedError(
+                response.status_code, _google_error_message(response)
             )
         if response.status_code == 429:
             raise SearchConsoleError(
@@ -187,11 +207,23 @@ def _quote(value: str) -> str:
     return quote(value, safe="")
 
 
+def _google_error_message(response: httpx.Response) -> str | None:
+    """Mensaje legible del error de Google, acotado para el log y la interfaz."""
+    try:
+        data = response.json()
+    except ValueError:
+        return None
+    error = data.get("error") if isinstance(data, dict) else None
+    message = error.get("message") if isinstance(error, dict) else None
+    return str(message)[:240] if message else None
+
+
 __all__ = [
     "DATA_LAG_DAYS",
     "DateRange",
     "MetricRow",
     "OAuthError",
+    "SearchConsoleAccessDeniedError",
     "SearchConsoleClient",
     "SearchConsoleError",
     "period_range",

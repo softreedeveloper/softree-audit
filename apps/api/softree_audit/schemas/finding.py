@@ -82,11 +82,17 @@ class SeoResultRead(ApiModel):
 
 
 class SiteSeoSummary(ApiModel):
-    """Último resultado SEO de un sitio (`GET /sites/{id}/seo`)."""
+    """Resultado SEO de un scan (`GET /scans/{id}/seo`) o del último scan
+    terminado de un sitio (`GET /sites/{id}/seo`)."""
 
     scan_id: uuid.UUID
     scan_status: str
     finished_at: dt.datetime | None
+    # Sin `result` hay que poder decir por qué: módulo omitido, fallido o no
+    # incluido en este tipo de scan.
+    module_status: str
+    module_detail: dict[str, Any] | None
+    module_error: str | None
     result: SeoResultRead | None
     findings_by_severity: SeverityCounts
     top_rules: list[dict[str, Any]]
